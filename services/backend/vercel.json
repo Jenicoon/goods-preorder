@@ -7,7 +7,7 @@
     },
     {
       "src": "/api/products",
-      "dest": "/api/products.js"
+      "dest": "/api/health.js?route=products"
     },
     {
       "src": "/api/public/shop-access",
