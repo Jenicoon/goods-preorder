@@ -25,6 +25,58 @@
   const resetRevenueButton = document.getElementById("resetRevenueButton");
   const resetAllDataButton = document.getElementById("resetAllDataButton");
 
+  function getApiBaseUrl() {
+    const configuredBaseUrl = window.APP_CONFIG && window.APP_CONFIG.API_BASE_URL;
+    return configuredBaseUrl ? configuredBaseUrl.replace(/\/+$/, "") : window.location.origin;
+  }
+
+  async function request(path, options) {
+    const response = await fetch(getApiBaseUrl() + path, Object.assign({
+      credentials: "include"
+    }, options || {}));
+
+    const data = await response.json().catch(function () {
+      return {};
+    });
+
+    if (!response.ok) {
+      const message = data && data.error && data.error.message
+        ? data.error.message
+        : "요청 처리에 실패했습니다.";
+      throw new Error(message);
+    }
+
+    return data;
+  }
+
+  async function loginWithPassword(password) {
+    return request("/api/super-admin/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ password: password })
+    });
+  }
+
+  async function checkSession() {
+    const session = await request("/api/admin/session", {
+      method: "GET"
+    });
+
+    if (session.role !== "super_admin") {
+      throw new Error("슈퍼 관리자 권한이 필요합니다.");
+    }
+
+    return session;
+  }
+
+  async function logoutSession() {
+    return request("/api/auth/logout", {
+      method: "POST"
+    });
+  }
+
   function openModal(modal) {
     modal.classList.remove("is-hidden");
     modal.setAttribute("aria-hidden", "false");
@@ -75,10 +127,10 @@
       statCard("총 판매 수익", formatCurrency(summary.totalRevenue)),
       statCard("총 판매 수량", summary.totalQuantity + "개"),
       statCard("품절 상품 수", summary.soldOutCount + "개"),
-      statCard("확정 대기 주문 수", summary.waitingOrders + "건"),
-      statCard("처리 대기 주문 수", summary.pendingOrders + "건"),
-      statCard("처리 완료 주문 수", summary.completedOrders + "건"),
-      statCard("삭제 보관 주문 수", summary.deletedOrders + "건")
+      statCard("확정 대기 주문", summary.waitingOrders + "건"),
+      statCard("처리 대기 주문", summary.pendingOrders + "건"),
+      statCard("처리 완료 주문", summary.completedOrders + "건"),
+      statCard("삭제 보관 주문", summary.deletedOrders + "건")
     ].join("");
   }
 
@@ -253,51 +305,60 @@
     refresh();
   }
 
-  function initializeSuperAdminAccess() {
-    if (sessionStorage.getItem("goods-shop-super-admin-auth") === "true") {
+  async function handleLogin(password) {
+    await loginWithPassword(password);
+    closeModal(accessModal);
+    setLoggedIn(true);
+    refresh();
+  }
+
+  async function initializeSuperAdminAccess() {
+    setLoggedIn(false);
+
+    try {
+      await checkSession();
       closeModal(accessModal);
       setLoggedIn(true);
       refresh();
       return;
+    } catch (error) {
+      openModal(accessModal);
     }
-
-    setLoggedIn(false);
-    openModal(accessModal);
   }
 
-  accessForm.addEventListener("submit", function (event) {
+  accessForm.addEventListener("submit", async function (event) {
     event.preventDefault();
 
-    if (accessPasswordInput.value !== GoodsData.getSuperAdminPassword()) {
-      alert("슈퍼 관리자 입장 비밀번호가 올바르지 않습니다.");
+    try {
+      await handleLogin(accessPasswordInput.value);
+      accessForm.reset();
+    } catch (error) {
+      alert(error.message || "슈퍼 관리자 입장 비밀번호가 올바르지 않습니다.");
       accessPasswordInput.select();
-      return;
     }
-
-    sessionStorage.setItem("goods-shop-super-admin-auth", "true");
-    accessForm.reset();
-    closeModal(accessModal);
-    setLoggedIn(true);
-    refresh();
   });
 
-  loginForm.addEventListener("submit", function (event) {
+  loginForm.addEventListener("submit", async function (event) {
     event.preventDefault();
 
-    if (passwordInput.value !== GoodsData.getSuperAdminPassword()) {
-      alert("슈퍼 관리자 비밀번호가 올바르지 않습니다.");
-      return;
+    try {
+      await handleLogin(passwordInput.value);
+      loginForm.reset();
+    } catch (error) {
+      alert(error.message || "슈퍼 관리자 비밀번호가 올바르지 않습니다.");
+      passwordInput.select();
     }
-
-    sessionStorage.setItem("goods-shop-super-admin-auth", "true");
-    closeModal(accessModal);
-    setLoggedIn(true);
-    refresh();
   });
 
-  logoutButton.addEventListener("click", function () {
-    sessionStorage.removeItem("goods-shop-super-admin-auth");
+  logoutButton.addEventListener("click", async function () {
+    try {
+      await logoutSession();
+    } catch (error) {
+      console.error(error);
+    }
+
     loginForm.reset();
+    accessForm.reset();
     setLoggedIn(false);
     openModal(accessModal);
   });
@@ -359,7 +420,7 @@
     }
 
     if (target.dataset.action === "delete-order") {
-      askDangerConfirm("이 확정된 주문을 삭제 보관함으로 이동할까요?", function () {
+      askDangerConfirm("이 확정 주문을 삭제 보관함으로 이동할까요?", function () {
         GoodsData.deleteOrder(target.dataset.id);
       });
     }
@@ -377,7 +438,7 @@
     }
 
     if (target.dataset.action === "restore-order") {
-      askDangerConfirm("이 삭제된 주문을 복구할까요?", function () {
+      askDangerConfirm("이 삭제 주문을 복구할까요?", function () {
         GoodsData.restoreDeletedOrder(target.dataset.id);
       });
     }
@@ -427,7 +488,7 @@
   });
 
   deleteCompletedOrdersButton.addEventListener("click", function () {
-    askDangerConfirm("처리 완료된 주문을 모두 삭제 보관함으로 이동할까요?", function () {
+    askDangerConfirm("처리 완료 주문을 모두 삭제 보관함으로 이동할까요?", function () {
       GoodsData.getOrders().forEach(function (order) {
         if (order.status === "처리 완료") {
           GoodsData.deleteOrder(order.id);
@@ -455,7 +516,7 @@
   });
 
   resetRevenueButton.addEventListener("click", function () {
-    askDangerConfirm("판매 수익 통계를 초기화할까요? 주문, 확정 대기, 삭제 보관함 데이터도 함께 비워집니다.", function () {
+    askDangerConfirm("판매 수익 통계를 초기화할까요? 주문, 확정 대기, 삭제 보관 데이터도 함께 비워집니다.", function () {
       GoodsData.clearRevenueStatistics();
     });
   });

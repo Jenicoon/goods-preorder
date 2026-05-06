@@ -12,6 +12,52 @@
   const ordersTableBody = document.getElementById("ordersTableBody");
   const inventoryTableBody = document.getElementById("inventoryTableBody");
 
+  function getApiBaseUrl() {
+    const configuredBaseUrl = window.APP_CONFIG && window.APP_CONFIG.API_BASE_URL;
+    return configuredBaseUrl ? configuredBaseUrl.replace(/\/+$/, "") : window.location.origin;
+  }
+
+  async function request(path, options) {
+    const response = await fetch(getApiBaseUrl() + path, Object.assign({
+      credentials: "include"
+    }, options || {}));
+
+    const data = await response.json().catch(function () {
+      return {};
+    });
+
+    if (!response.ok) {
+      const message = data && data.error && data.error.message
+        ? data.error.message
+        : "요청 처리에 실패했습니다.";
+      throw new Error(message);
+    }
+
+    return data;
+  }
+
+  async function loginWithPassword(password) {
+    return request("/api/admin/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ password: password })
+    });
+  }
+
+  async function checkSession() {
+    return request("/api/admin/session", {
+      method: "GET"
+    });
+  }
+
+  async function logoutSession() {
+    return request("/api/auth/logout", {
+      method: "POST"
+    });
+  }
+
   function openModal(modal) {
     modal.classList.remove("is-hidden");
     modal.setAttribute("aria-hidden", "false");
@@ -48,10 +94,10 @@
   function renderStats() {
     const revenue = GoodsData.calculateRevenue();
     adminStats.innerHTML = [
-      statCard("확정 대기 주문 수", revenue.waitingOrders + "건"),
+      statCard("확정 대기 주문", revenue.waitingOrders + "건"),
       statCard("총 주문 수", revenue.totalOrders + "건"),
-      statCard("처리 대기 주문 수", revenue.pendingOrders + "건"),
-      statCard("처리 완료 주문 수", revenue.completedOrders + "건"),
+      statCard("처리 대기 주문", revenue.pendingOrders + "건"),
+      statCard("처리 완료 주문", revenue.completedOrders + "건"),
       statCard("총 판매 수량", revenue.totalQuantity + "개"),
       statCard("품절 상품 수", revenue.soldOutCount + "개")
     ].join("");
@@ -131,51 +177,60 @@
     renderInventory();
   }
 
-  function initializeAdminAccess() {
-    if (sessionStorage.getItem("goods-shop-admin-auth") === "true") {
+  async function handleLogin(password) {
+    await loginWithPassword(password);
+    closeModal(adminAccessModal);
+    setLoggedIn(true);
+    refreshDashboard();
+  }
+
+  async function initializeAdminAccess() {
+    setLoggedIn(false);
+
+    try {
+      await checkSession();
       closeModal(adminAccessModal);
       setLoggedIn(true);
       refreshDashboard();
       return;
+    } catch (error) {
+      openModal(adminAccessModal);
     }
-
-    setLoggedIn(false);
-    openModal(adminAccessModal);
   }
 
-  adminAccessForm.addEventListener("submit", function (event) {
+  adminAccessForm.addEventListener("submit", async function (event) {
     event.preventDefault();
 
-    if (adminAccessPasswordInput.value !== GoodsData.getAdminPassword()) {
-      alert("관리자 입장 비밀번호가 올바르지 않습니다.");
+    try {
+      await handleLogin(adminAccessPasswordInput.value);
+      adminAccessForm.reset();
+    } catch (error) {
+      alert(error.message || "관리자 입장 비밀번호가 올바르지 않습니다.");
       adminAccessPasswordInput.select();
-      return;
     }
-
-    sessionStorage.setItem("goods-shop-admin-auth", "true");
-    adminAccessForm.reset();
-    closeModal(adminAccessModal);
-    setLoggedIn(true);
-    refreshDashboard();
   });
 
-  adminLoginForm.addEventListener("submit", function (event) {
+  adminLoginForm.addEventListener("submit", async function (event) {
     event.preventDefault();
 
-    if (adminPasswordInput.value !== GoodsData.getAdminPassword()) {
-      alert("관리자 비밀번호가 올바르지 않습니다.");
-      return;
+    try {
+      await handleLogin(adminPasswordInput.value);
+      adminLoginForm.reset();
+    } catch (error) {
+      alert(error.message || "관리자 비밀번호가 올바르지 않습니다.");
+      adminPasswordInput.select();
     }
-
-    sessionStorage.setItem("goods-shop-admin-auth", "true");
-    closeModal(adminAccessModal);
-    setLoggedIn(true);
-    refreshDashboard();
   });
 
-  adminLogoutButton.addEventListener("click", function () {
-    sessionStorage.removeItem("goods-shop-admin-auth");
+  adminLogoutButton.addEventListener("click", async function () {
+    try {
+      await logoutSession();
+    } catch (error) {
+      console.error(error);
+    }
+
     adminLoginForm.reset();
+    adminAccessForm.reset();
     setLoggedIn(false);
     openModal(adminAccessModal);
   });
