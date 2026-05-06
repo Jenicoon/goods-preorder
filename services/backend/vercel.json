@@ -1,5 +1,87 @@
 {
   "version": 2,
+  "routes": [
+    {
+      "src": "/api/health",
+      "dest": "/api/health.js"
+    },
+    {
+      "src": "/api/products",
+      "dest": "/api/products.js"
+    },
+    {
+      "src": "/api/public/shop-access",
+      "dest": "/api/public/shop-access.js"
+    },
+    {
+      "src": "/api/public/orders/pending",
+      "dest": "/api/public/orders/pending.js"
+    },
+    {
+      "src": "/api/public/orders/confirm",
+      "dest": "/api/public/orders/confirm.js"
+    },
+    {
+      "src": "/api/public/orders/pending/([^/]+)",
+      "dest": "/api/public/orders/pending/[id].js?id=$1"
+    },
+    {
+      "src": "/api/admin/login",
+      "dest": "/api/admin/login.js"
+    },
+    {
+      "src": "/api/admin/session",
+      "dest": "/api/admin/session.js"
+    },
+    {
+      "src": "/api/admin/dashboard",
+      "dest": "/api/admin/dashboard.js"
+    },
+    {
+      "src": "/api/admin/orders/([^/]+)/status",
+      "dest": "/api/admin/orders/[id]/status.js?id=$1"
+    },
+    {
+      "src": "/api/auth/logout",
+      "dest": "/api/auth/logout.js"
+    },
+    {
+      "src": "/api/super-admin/login",
+      "dest": "/api/super-admin/login.js"
+    },
+    {
+      "src": "/api/super-admin/orders/([^/]+)/restore",
+      "dest": "/api/super-admin/orders/[id]/restore.js?id=$1"
+    },
+    {
+      "src": "/api/super-admin/orders/([^/]+)",
+      "dest": "/api/super-admin/orders/[id].js?id=$1"
+    },
+    {
+      "src": "/api/super-admin/pending-orders/([^/]+)",
+      "dest": "/api/super-admin/pending-orders/[id].js?id=$1"
+    },
+    {
+      "src": "/api/super-admin/products/([^/]+)/stock",
+      "dest": "/api/super-admin/products/[id]/stock.js?id=$1"
+    },
+    {
+      "src": "/api/super-admin/reset-orders",
+      "dest": "/api/super-admin/reset-orders.js"
+    },
+    {
+      "src": "/api/super-admin/reset-inventory",
+      "dest": "/api/super-admin/reset-inventory.js"
+    },
+    {
+      "src": "/api/super-admin/reset-products",
+      "dest": "/api/super-admin/reset-products.js"
+    },
+    {
+      "src": "/api/super-admin/reset-all-data",
+      "dest": "/api/super-admin/reset-all-data.js"
+    }
+  ],
   "headers": [
     {
       "source": "/api/(.*)",
