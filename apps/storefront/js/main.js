@@ -22,38 +22,23 @@
   let stagedItems = [];
   let pendingOrderId = "";
 
-  function getApiBaseUrl() {
-    const configuredBaseUrl = window.APP_CONFIG && window.APP_CONFIG.API_BASE_URL;
-    return configuredBaseUrl ? configuredBaseUrl.replace(/\/+$/, "") : window.location.origin;
-  }
-
-  async function request(path, options) {
-    const response = await fetch(getApiBaseUrl() + path, Object.assign({
-      credentials: "include"
-    }, options || {}));
+  async function verifyShopAccess(password) {
+    const response = await fetch((window.APP_CONFIG && window.APP_CONFIG.API_BASE_URL ? window.APP_CONFIG.API_BASE_URL.replace(/\/+$/, "") : window.location.origin) + "/api/public/shop-access", {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ password: password })
+    });
 
     const data = await response.json().catch(function () {
       return {};
     });
 
     if (!response.ok) {
-      const message = data && data.error && data.error.message
-        ? data.error.message
-        : "요청 처리에 실패했습니다.";
-      throw new Error(message);
+      throw new Error(data && data.error && data.error.message ? data.error.message : "입장 비밀번호 확인에 실패했습니다.");
     }
-
-    return data;
-  }
-
-  async function verifyShopAccess(password) {
-    return request("/api/public/shop-access", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ password: password })
-    });
   }
 
   function formatCurrency(value) {
@@ -286,7 +271,7 @@
     openModal(paymentModal);
   }
 
-  function handleShowAdminConfirm() {
+  async function handleShowAdminConfirm() {
     if (!stagedItems.length) {
       closeModal(paymentModal);
       return;
@@ -294,7 +279,7 @@
 
     try {
       if (!pendingOrderId) {
-        const pendingOrder = GoodsData.createPendingOrder({
+        const pendingOrder = await GoodsData.createPendingOrder({
           items: stagedItems.map(function (item) {
             return {
               productId: item.productId,
@@ -306,6 +291,7 @@
         pendingOrderId = pendingOrder.id;
       }
 
+      await GoodsData.syncStorefrontData();
       setAdminConfirmStepVisible(true);
       renderProducts();
       updateSummary();
@@ -318,17 +304,20 @@
     }
   }
 
-  function handleConfirmPayment() {
+  async function handleConfirmPayment() {
     if (!pendingOrderId) {
       return;
     }
 
     try {
-      const confirmedOrder = GoodsData.confirmPendingOrder(pendingOrderId, adminCodeInput.value.trim());
+      const confirmedOrder = await GoodsData.confirmPendingOrder(pendingOrderId, adminCodeInput.value.trim());
       pendingOrderId = "";
       closeModal(paymentModal);
       buyerCodeBox.textContent = confirmedOrder.buyerConfirmationCode;
       openModal(buyerCodeModal);
+      await GoodsData.syncStorefrontData();
+      renderProducts();
+      updateSummary();
     } catch (error) {
       alert(error.message);
     }
@@ -344,9 +333,9 @@
     setAdminConfirmStepVisible(false);
   }
 
-  function closePaymentFlow() {
+  async function closePaymentFlow() {
     if (pendingOrderId) {
-      GoodsData.deletePendingOrder(pendingOrderId);
+      await GoodsData.deletePendingOrder(pendingOrderId);
       pendingOrderId = "";
     }
 
@@ -354,6 +343,7 @@
     adminCodeInput.value = "";
     setAdminConfirmStepVisible(false);
     closeModal(paymentModal);
+    await GoodsData.syncStorefrontData();
     renderProducts();
     updateSummary();
   }
@@ -398,12 +388,16 @@
   cancelPaymentModalButton.addEventListener("click", handlePreviousStep);
   finishBuyerFlowButton.addEventListener("click", resetFlow);
 
-  window.addEventListener("storage", function () {
-    renderProducts();
-    updateSummary();
-  });
+  (async function initializePage() {
+    try {
+      await GoodsData.syncStorefrontData();
+      renderProducts();
+      updateSummary();
+    } catch (error) {
+      stockStatus.textContent = error.message || "상품 정보를 불러오지 못했습니다.";
+      stockStatus.className = "stock-status danger";
+    }
 
-  renderProducts();
-  updateSummary();
-  initializeShopAccess();
+    initializeShopAccess();
+  })();
 })();

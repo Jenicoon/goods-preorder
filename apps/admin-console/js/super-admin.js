@@ -10,8 +10,6 @@
   const systemSummaryStats = document.getElementById("systemSummaryStats");
   const adminPasswordChangeForm = document.getElementById("adminPasswordChangeForm");
   const superPasswordChangeForm = document.getElementById("superPasswordChangeForm");
-  const newAdminPasswordInput = document.getElementById("newAdminPasswordInput");
-  const newSuperPasswordInput = document.getElementById("newSuperPasswordInput");
   const superPendingOrdersTableBody = document.getElementById("superPendingOrdersTableBody");
   const superOrdersTableBody = document.getElementById("superOrdersTableBody");
   const deletedOrdersTableBody = document.getElementById("deletedOrdersTableBody");
@@ -110,12 +108,12 @@
     }).join("<br>");
   }
 
-  function askDangerConfirm(message, action) {
+  async function askDangerConfirm(message, action) {
     if (!confirm(message)) {
       return;
     }
 
-    action();
+    await action();
     refresh();
   }
 
@@ -295,18 +293,19 @@
     renderProductManager();
   }
 
-  function applyStockFromInput(productId, size) {
+  async function applyStockFromInput(productId, size) {
     const input = superProductManagerList.querySelector('[data-role="stock-input"][data-id="' + productId + '"][data-size="' + size + '"]');
     if (!input) {
       return;
     }
 
-    GoodsData.setProductStock(productId, size, Number(input.value || 0));
+    await GoodsData.setProductStock(productId, size, Number(input.value || 0));
     refresh();
   }
 
   async function handleLogin(password) {
     await loginWithPassword(password);
+    await GoodsData.syncDashboardData();
     closeModal(accessModal);
     setLoggedIn(true);
     refresh();
@@ -317,6 +316,7 @@
 
     try {
       await checkSession();
+      await GoodsData.syncDashboardData();
       closeModal(accessModal);
       setLoggedIn(true);
       refresh();
@@ -365,21 +365,19 @@
 
   adminPasswordChangeForm.addEventListener("submit", function (event) {
     event.preventDefault();
-    GoodsData.setAdminPassword(newAdminPasswordInput.value);
     adminPasswordChangeForm.reset();
-    alert("관리자 비밀번호가 변경되었습니다.");
+    alert("관리자 비밀번호 변경은 백엔드 환경변수 또는 전용 API에서 관리해주세요.");
   });
 
   superPasswordChangeForm.addEventListener("submit", function (event) {
     event.preventDefault();
-    GoodsData.setSuperAdminPassword(newSuperPasswordInput.value);
     superPasswordChangeForm.reset();
-    alert("슈퍼 관리자 비밀번호가 변경되었습니다.");
+    alert("슈퍼 관리자 비밀번호 변경은 백엔드 환경변수 또는 전용 API에서 관리해주세요.");
   });
 
   productFilterSelect.addEventListener("change", renderProductManager);
 
-  superPendingOrdersTableBody.addEventListener("click", function (event) {
+  superPendingOrdersTableBody.addEventListener("click", async function (event) {
     const target = event.target;
     if (!(target instanceof HTMLElement)) {
       return;
@@ -396,13 +394,13 @@
     }
 
     if (target.dataset.action === "delete-pending") {
-      askDangerConfirm("이 확정 대기 주문을 삭제할까요?", function () {
-        GoodsData.deletePendingOrder(target.dataset.id);
+      await askDangerConfirm("이 확정 대기 주문을 삭제할까요?", async function () {
+        await GoodsData.deletePendingOrder(target.dataset.id);
       });
     }
   });
 
-  superOrdersTableBody.addEventListener("click", function (event) {
+  superOrdersTableBody.addEventListener("click", async function (event) {
     const target = event.target;
     if (!(target instanceof HTMLElement)) {
       return;
@@ -414,19 +412,19 @@
     }
 
     if (target.dataset.action === "complete-order") {
-      GoodsData.updateOrderStatus(target.dataset.id, "처리 완료");
+      await GoodsData.updateOrderStatus(target.dataset.id, "처리 완료");
       refresh();
       return;
     }
 
     if (target.dataset.action === "delete-order") {
-      askDangerConfirm("이 확정 주문을 삭제 보관함으로 이동할까요?", function () {
-        GoodsData.deleteOrder(target.dataset.id);
+      await askDangerConfirm("이 확정 주문을 삭제 보관함으로 이동할까요?", async function () {
+        await GoodsData.deleteOrder(target.dataset.id);
       });
     }
   });
 
-  deletedOrdersTableBody.addEventListener("click", function (event) {
+  deletedOrdersTableBody.addEventListener("click", async function (event) {
     const target = event.target;
     if (!(target instanceof HTMLElement)) {
       return;
@@ -438,13 +436,13 @@
     }
 
     if (target.dataset.action === "restore-order") {
-      askDangerConfirm("이 삭제 주문을 복구할까요?", function () {
-        GoodsData.restoreDeletedOrder(target.dataset.id);
+      await askDangerConfirm("이 삭제 주문을 복구할까요?", async function () {
+        await GoodsData.restoreDeletedOrder(target.dataset.id);
       });
     }
   });
 
-  superProductManagerList.addEventListener("click", function (event) {
+  superProductManagerList.addEventListener("click", async function (event) {
     const target = event.target;
     if (!(target instanceof HTMLElement)) {
       return;
@@ -459,23 +457,23 @@
     }
 
     if (action === "decrease-stock") {
-      GoodsData.adjustProductStock(productId, size, -1);
+      await GoodsData.adjustProductStock(productId, size, -1);
       refresh();
       return;
     }
 
     if (action === "increase-stock") {
-      GoodsData.adjustProductStock(productId, size, 1);
+      await GoodsData.adjustProductStock(productId, size, 1);
       refresh();
       return;
     }
 
     if (action === "apply-stock") {
-      applyStockFromInput(productId, size);
+      await applyStockFromInput(productId, size);
     }
   });
 
-  superProductManagerList.addEventListener("keydown", function (event) {
+  superProductManagerList.addEventListener("keydown", async function (event) {
     const target = event.target;
     if (!(target instanceof HTMLInputElement)) {
       return;
@@ -483,51 +481,51 @@
 
     if (event.key === "Enter" && target.dataset.role === "stock-input") {
       event.preventDefault();
-      applyStockFromInput(target.dataset.id, target.dataset.size);
+      await applyStockFromInput(target.dataset.id, target.dataset.size);
     }
   });
 
-  deleteCompletedOrdersButton.addEventListener("click", function () {
-    askDangerConfirm("처리 완료 주문을 모두 삭제 보관함으로 이동할까요?", function () {
-      GoodsData.getOrders().forEach(function (order) {
-        if (order.status === "처리 완료") {
-          GoodsData.deleteOrder(order.id);
-        }
+  deleteCompletedOrdersButton.addEventListener("click", async function () {
+    await askDangerConfirm("처리 완료 주문을 모두 삭제 보관함으로 이동할까요?", async function () {
+      const completedOrders = GoodsData.getOrders().filter(function (order) {
+        return order.status === "처리 완료";
       });
+
+      for (const order of completedOrders) {
+        await GoodsData.deleteOrder(order.id);
+      }
     });
   });
 
-  deleteAllOrdersButton.addEventListener("click", function () {
-    askDangerConfirm("전체 주문 내역과 확정 대기 내역을 삭제할까요?", function () {
-      GoodsData.resetOrders();
+  deleteAllOrdersButton.addEventListener("click", async function () {
+    await askDangerConfirm("전체 주문 내역과 확정 대기 내역을 삭제할까요?", async function () {
+      await GoodsData.resetOrders();
     });
   });
 
-  resetInventoryButton.addEventListener("click", function () {
-    askDangerConfirm("전체 재고를 초기 수량으로 되돌릴까요?", function () {
-      GoodsData.resetInventory();
+  resetInventoryButton.addEventListener("click", async function () {
+    await askDangerConfirm("전체 재고를 초기 수량으로 되돌릴까요?", async function () {
+      await GoodsData.resetInventory();
     });
   });
 
-  resetProductsButton.addEventListener("click", function () {
-    askDangerConfirm("전체 상품 데이터를 기본 구성으로 초기화할까요?", function () {
-      GoodsData.resetProducts();
+  resetProductsButton.addEventListener("click", async function () {
+    await askDangerConfirm("전체 상품 데이터를 기본 구성으로 초기화할까요?", async function () {
+      await GoodsData.resetProducts();
     });
   });
 
-  resetRevenueButton.addEventListener("click", function () {
-    askDangerConfirm("판매 수익 통계를 초기화할까요? 주문, 확정 대기, 삭제 보관 데이터도 함께 비워집니다.", function () {
-      GoodsData.clearRevenueStatistics();
+  resetRevenueButton.addEventListener("click", async function () {
+    await askDangerConfirm("판매 수익 통계를 초기화할까요? 주문, 확정 대기, 삭제 보관 데이터도 함께 비워집니다.", async function () {
+      await GoodsData.clearRevenueStatistics();
     });
   });
 
-  resetAllDataButton.addEventListener("click", function () {
-    askDangerConfirm("전체 상품, 주문, 비밀번호 데이터를 기본값으로 초기화할까요?", function () {
-      GoodsData.resetAllData();
+  resetAllDataButton.addEventListener("click", async function () {
+    await askDangerConfirm("전체 상품, 주문, 비밀번호 데이터를 기본값으로 초기화할까요?", async function () {
+      await GoodsData.resetAllData();
     });
   });
-
-  window.addEventListener("storage", refresh);
 
   initializeSuperAdminAccess();
 })();

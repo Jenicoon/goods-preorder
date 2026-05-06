@@ -179,6 +179,7 @@
 
   async function handleLogin(password) {
     await loginWithPassword(password);
+    await GoodsData.syncDashboardData();
     closeModal(adminAccessModal);
     setLoggedIn(true);
     refreshDashboard();
@@ -189,6 +190,7 @@
 
     try {
       await checkSession();
+      await GoodsData.syncDashboardData();
       closeModal(adminAccessModal);
       setLoggedIn(true);
       refreshDashboard();
@@ -251,7 +253,7 @@
     }
   });
 
-  ordersTableBody.addEventListener("click", function (event) {
+  ordersTableBody.addEventListener("click", async function (event) {
     const target = event.target;
     if (!(target instanceof HTMLElement)) {
       return;
@@ -263,12 +265,10 @@
     }
 
     if (target.dataset.action === "complete-order") {
-      GoodsData.updateOrderStatus(target.dataset.id, "처리 완료");
+      await GoodsData.updateOrderStatus(target.dataset.id, "처리 완료");
       refreshDashboard();
     }
   });
-
-  window.addEventListener("storage", refreshDashboard);
 
   initializeAdminAccess();
 })();
