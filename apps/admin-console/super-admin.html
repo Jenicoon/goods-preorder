@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>굿즈 판매 슈퍼 관리자</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body data-page="super-admin">
+  <div id="superAdminAccessModal" class="modal-backdrop" aria-hidden="false">
+    <div class="modal-card shop-access-card" role="dialog" aria-modal="true" aria-labelledby="superAdminAccessTitle">
+      <p class="eyebrow">SUPER ADMIN ACCESS</p>
+      <h3 id="superAdminAccessTitle">슈퍼 관리자 페이지 입장 비밀번호</h3>
+      <p class="muted">슈퍼 관리자 페이지는 비밀번호를 입력해야만 들어갈 수 있습니다.</p>
+      <form id="superAdminAccessForm" class="compact-form">
+        <label>
+          <span>입장 비밀번호</span>
+          <input id="superAdminAccessPasswordInput" type="password" required>
+        </label>
+        <button class="primary-button" type="submit">입장하기</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="site-shell">
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="brand" href="index.html">
+          <span class="brand-badge">FESTA</span>
+          <span class="brand-text">굿즈 판매 사이트</span>
+        </a>
+        <nav class="header-nav" aria-label="슈퍼 관리자 메뉴">
+          <a href="index.html">판매 페이지</a>
+          <a href="admin.html">관리자</a>
+          <a href="super-admin.html" class="is-active">슈퍼 관리자</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="container page-section">
+      <section id="superAdminLoginSection" class="auth-panel panel">
+        <p class="eyebrow">SUPER ADMIN ACCESS</p>
+        <h1>슈퍼 관리자 로그인</h1>
+        <p class="muted">비밀번호 변경, 주문 삭제, 상품 관리, 데이터 초기화는 슈퍼 관리자만 사용할 수 있습니다.</p>
+        <form id="superAdminLoginForm" class="compact-form">
+          <label>
+            <span>슈퍼 관리자 비밀번호</span>
+            <input id="superAdminPasswordInput" type="password" required>
+          </label>
+          <button class="primary-button" type="submit">접속하기</button>
+        </form>
+      </section>
+
+      <section id="superAdminDashboard" class="is-hidden">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">SYSTEM CONTROL</p>
+            <h1>슈퍼 관리자 시스템 대시보드</h1>
+          </div>
+          <button id="superAdminLogoutButton" class="secondary-button" type="button">로그아웃</button>
+        </div>
+
+        <div id="systemSummaryStats" class="stats-grid"></div>
+
+        <section class="panel page-subsection">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">PENDING CONFIRMATION</p>
+              <h2>확정 대기 주문</h2>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>주문 시간</th>
+                  <th>구매 번호</th>
+                  <th>확인 번호</th>
+                  <th>대기 품목</th>
+                  <th>총 수량</th>
+                  <th>총 금액</th>
+                  <th>관리</th>
+                </tr>
+              </thead>
+              <tbody id="superPendingOrdersTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel page-subsection">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">PASSWORD</p>
+              <h2>권한 비밀번호 변경</h2>
+            </div>
+          </div>
+          <div class="two-column-grid">
+            <form id="adminPasswordChangeForm" class="compact-form">
+              <label>
+                <span>새 관리자 비밀번호</span>
+                <input id="newAdminPasswordInput" type="password" required>
+              </label>
+              <button class="primary-button" type="submit">관리자 비밀번호 변경</button>
+            </form>
+            <form id="superPasswordChangeForm" class="compact-form">
+              <label>
+                <span>새 슈퍼 관리자 비밀번호</span>
+                <input id="newSuperPasswordInput" type="password" required>
+              </label>
+              <button class="primary-button" type="submit">슈퍼 관리자 비밀번호 변경</button>
+            </form>
+          </div>
+        </section>
+
+        <section class="panel page-subsection">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">AUTHORITY</p>
+              <h2>관리자 권한 설정 영역</h2>
+            </div>
+          </div>
+          <div class="note-box">
+            <p>일반 관리자 권한:</p>
+            <ul class="simple-list">
+              <li>확정 대기 주문의 확인 번호 확인</li>
+              <li>주문 처리 완료</li>
+              <li>재고 확인</li>
+            </ul>
+            <p>슈퍼 관리자 권한:</p>
+            <ul class="simple-list">
+              <li>일반 관리자 기능 전체</li>
+              <li>상품 재고 관리</li>
+              <li>금액 및 수익 통계 확인</li>
+              <li>비밀번호 변경</li>
+              <li>주문 삭제</li>
+              <li>데이터 초기화</li>
+            </ul>
+          </div>
+        </section>
+
+        <section class="panel page-subsection danger-panel">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">DANGER ZONE</p>
+              <h2>삭제 및 초기화 기능</h2>
+            </div>
+          </div>
+          <div class="danger-grid">
+            <button id="deleteCompletedOrdersButton" class="danger-button" type="button">처리 완료 주문 일괄 삭제</button>
+            <button id="deleteAllOrdersButton" class="danger-button" type="button">전체 주문 내역 삭제</button>
+            <button id="resetInventoryButton" class="danger-button" type="button">전체 재고 초기화</button>
+            <button id="resetProductsButton" class="danger-button" type="button">전체 상품 데이터 초기화</button>
+            <button id="resetRevenueButton" class="danger-button" type="button">판매 수익 통계 초기화</button>
+            <button id="resetAllDataButton" class="danger-button" type="button">전체 데이터 초기화</button>
+          </div>
+        </section>
+
+        <section class="panel page-subsection">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">ORDER CONTROL</p>
+              <h2>확정된 주문 관리</h2>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>주문 시간</th>
+                  <th>구매 번호</th>
+                  <th>판매 품목</th>
+                  <th>총 수량</th>
+                  <th>총 금액</th>
+                  <th>상태</th>
+                  <th>관리</th>
+                </tr>
+              </thead>
+              <tbody id="superOrdersTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel page-subsection">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">DELETED ORDERS</p>
+              <h2>삭제된 주문 보관함</h2>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>삭제 시간</th>
+                  <th>구매 번호</th>
+                  <th>삭제 품목</th>
+                  <th>총 수량</th>
+                  <th>총 금액</th>
+                  <th>관리</th>
+                </tr>
+              </thead>
+              <tbody id="deletedOrdersTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel page-subsection">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">INVENTORY</p>
+              <h2>재고 현황</h2>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>굿즈명</th>
+                  <th>사이즈</th>
+                  <th>초기 수량</th>
+                  <th>판매 수량</th>
+                  <th>잔여 수량</th>
+                  <th>품절 여부</th>
+                </tr>
+              </thead>
+              <tbody id="superInventoryTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel page-subsection">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">PRODUCT MANAGER</p>
+              <h2>슈퍼 관리자 전용 굿즈 재고 관리</h2>
+            </div>
+          </div>
+
+          <div class="product-manager-toolbar">
+            <label class="product-filter-label">
+              <span>관리할 품목 선택</span>
+              <select id="productFilterSelect"></select>
+            </label>
+          </div>
+
+          <div id="superProductManagerList" class="product-manager-grid"></div>
+        </section>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-inner">
+        <p>슈퍼 관리자 화면에서는 금액, 수익, 상품 재고 관리와 삭제 및 초기화 기능까지 모두 사용할 수 있습니다.</p>
+        <p>모든 변경사항은 localStorage에 즉시 반영됩니다.</p>
+      </div>
+    </footer>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/super-admin.js"></script>
+</body>
+</html>

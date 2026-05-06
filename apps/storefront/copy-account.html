@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>계좌 복사</title>
+</head>
+<body>
+  <script>
+    (async function () {
+      const account = "신한은행 100-031-980976";
+      try {
+        await navigator.clipboard.writeText(account);
+        alert("계좌가 복사되었습니다.\n" + account);
+      } catch (error) {
+        prompt("자동 복사에 실패했어요. 아래 계좌를 복사해주세요.", account);
+      }
+      window.location.href = "index.html";
+    })();
+  </script>
+</body>
+</html>

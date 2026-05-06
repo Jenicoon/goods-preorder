@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>축제 굿즈 판매 사이트</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body data-page="shop">
+  <div id="shopAccessModal" class="modal-backdrop" aria-hidden="false">
+    <div class="modal-card shop-access-card" role="dialog" aria-modal="true" aria-labelledby="shopAccessTitle">
+      <p class="eyebrow">SHOP ACCESS</p>
+      <h3 id="shopAccessTitle">판매 페이지 입장 비밀번호</h3>
+      <p class="muted">주문 화면은 비밀번호를 입력한 뒤에만 들어갈 수 있습니다.</p>
+      <form id="shopAccessForm" class="compact-form">
+        <label>
+          <span>입장 비밀번호</span>
+          <input id="shopAccessPasswordInput" type="password" required>
+        </label>
+        <button class="primary-button" type="submit">입장하기</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="site-shell">
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="brand" href="index.html">
+          <span class="brand-badge">FESTA</span>
+          <span class="brand-text">굿즈 판매 사이트</span>
+        </a>
+        <nav class="header-nav header-nav-shop" aria-label="판매 페이지 메뉴">
+          <a href="#goodsSection" class="is-active">굿즈 주문</a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero-section">
+        <div class="container hero-grid">
+          <div>
+            <p class="eyebrow">2026 FESTIVAL GOODS</p>
+            <h1>원하는 굿즈를 여러 개 골라 한 번에 주문해보세요.</h1>
+            <p class="hero-copy">
+              상품마다 옵션별 수량을 바로 조절할 수 있고, 오른쪽 고정 주문서에서 선택 내역을 확인한 뒤
+              입금 안내와 관리자 확인 절차를 거쳐 주문을 확정할 수 있습니다.
+            </p>
+          </div>
+          <aside class="hero-card">
+            <h2>현장 주문 안내</h2>
+            <p class="muted">
+              입금 안내와 관리자 확인 입력은 주문 진행 팝업에서만 표시됩니다.
+              굿즈를 고른 뒤 구매 진행 버튼을 눌러 다음 단계로 이동해주세요.
+            </p>
+            <div class="note-box">
+              <p>1. 굿즈와 옵션별 수량 선택</p>
+              <p>2. 구매 진행 후 입금 안내 확인</p>
+              <p>3. 관리자 확인 버튼을 누르면 구매 번호 생성</p>
+              <p>4. 관리자 확인 번호 입력 후 주문 확정</p>
+              <p>5. 구매자 확인 번호 확인 후 완료</p>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="container page-section" id="goodsSection">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">ORDER</p>
+            <h2>굿즈 선택</h2>
+          </div>
+          <div class="inline-note">상품 카드에서 옵션별 수량을 조절하고 오른쪽 주문서에서 결제를 진행해주세요.</div>
+        </div>
+
+        <div class="shop-layout">
+          <section class="shop-products">
+            <div id="productList" class="product-grid product-grid-shop"></div>
+          </section>
+
+          <aside class="order-sidebar">
+            <form id="orderForm" class="panel order-sidebar-panel">
+              <p class="eyebrow">CHECKOUT</p>
+              <h3>주문서</h3>
+              <p class="muted">스크롤 중에도 주문서는 오른쪽에 고정되어 있습니다.</p>
+              <div id="stockStatus" class="stock-status">상품 카드에서 옵션별 수량을 선택해주세요.</div>
+              <div id="orderSummary" class="summary-box"></div>
+              <button class="primary-button order-submit-button" type="submit">구매 진행</button>
+            </form>
+          </aside>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-inner">
+        <p>축제 굿즈 판매 사이트는 현장 주문과 재고 반영이 즉시 연결됩니다.</p>
+        <p>관리자 페이지는 직접 링크를 통해서만 들어갈 수 있으며 판매 화면에는 노출되지 않습니다.</p>
+      </div>
+    </footer>
+  </div>
+
+  <div id="paymentModal" class="modal-backdrop is-hidden" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="paymentModalTitle">
+      <button id="closePaymentModalButton" class="modal-close-button" type="button" aria-label="팝업 닫기">×</button>
+      <p class="eyebrow">PAYMENT GUIDE</p>
+      <h3 id="paymentModalTitle">입금 안내</h3>
+      <p class="muted">입금 완료 후 이 화면을 판매자에게 보여주세요.</p>
+      <div class="modal-qr-box">
+        <div class="qr-placeholder">
+          <strong>QR 이미지 자리</strong>
+          <span>추후 사진 첨부 예정</span>
+        </div>
+        <div class="account-box">
+          <strong id="accountNumber">신한은행 100-031-980976</strong>
+          <a class="secondary-button" href="copy-account.html">계좌 바로 복사 링크</a>
+        </div>
+      </div>
+      <div id="paymentSummary" class="summary-box"></div>
+      <div id="adminConfirmSection" class="verification-item is-hidden">
+        <div class="verification-item-head">
+          <strong>관리자 확인</strong>
+          <span>관리자 확인 버튼을 누르면 구매 번호가 생성되고, 관리자 페이지의 확정 대기에서 확인할 수 있습니다.</span>
+        </div>
+        <label>
+          <span>관리자 확인 번호</span>
+          <input id="adminCodeInput" type="text" inputmode="numeric" maxlength="6" placeholder="관리자 확인 번호 입력">
+        </label>
+      </div>
+      <div class="modal-actions">
+        <button id="cancelPaymentModalButton" class="secondary-button" type="button">이전</button>
+        <button id="showAdminConfirmButton" class="secondary-button" type="button">관리자 확인</button>
+        <button id="confirmPaymentButton" class="primary-button is-hidden" type="button">주문 확정</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="buyerCodeModal" class="modal-backdrop is-hidden" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="buyerCodeModalTitle">
+      <p class="eyebrow">BUYER CONFIRMATION</p>
+      <h3 id="buyerCodeModalTitle">구매자 확인 번호</h3>
+      <p class="muted">아래 번호를 확인한 뒤 완료 버튼을 눌러 첫 화면으로 돌아가주세요.</p>
+      <div id="buyerCodeBox" class="code-box"></div>
+      <div class="modal-actions">
+        <button id="finishBuyerFlowButton" class="primary-button" type="button">완료</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

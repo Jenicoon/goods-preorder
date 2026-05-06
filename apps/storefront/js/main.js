@@ -1,0 +1,375 @@
+(function () {
+  const shopAccessModal = document.getElementById("shopAccessModal");
+  const shopAccessForm = document.getElementById("shopAccessForm");
+  const shopAccessPasswordInput = document.getElementById("shopAccessPasswordInput");
+  const productList = document.getElementById("productList");
+  const orderForm = document.getElementById("orderForm");
+  const stockStatus = document.getElementById("stockStatus");
+  const orderSummary = document.getElementById("orderSummary");
+  const paymentModal = document.getElementById("paymentModal");
+  const paymentSummary = document.getElementById("paymentSummary");
+  const adminConfirmSection = document.getElementById("adminConfirmSection");
+  const adminCodeInput = document.getElementById("adminCodeInput");
+  const closePaymentModalButton = document.getElementById("closePaymentModalButton");
+  const cancelPaymentModalButton = document.getElementById("cancelPaymentModalButton");
+  const showAdminConfirmButton = document.getElementById("showAdminConfirmButton");
+  const confirmPaymentButton = document.getElementById("confirmPaymentButton");
+  const buyerCodeModal = document.getElementById("buyerCodeModal");
+  const buyerCodeBox = document.getElementById("buyerCodeBox");
+  const finishBuyerFlowButton = document.getElementById("finishBuyerFlowButton");
+
+  const selectionState = {};
+  let stagedItems = [];
+  let pendingOrderId = "";
+
+  function formatCurrency(value) {
+    return new Intl.NumberFormat("ko-KR", {
+      style: "currency",
+      currency: "KRW",
+      maximumFractionDigits: 0
+    }).format(value);
+  }
+
+  function openModal(modal) {
+    modal.classList.remove("is-hidden");
+    modal.setAttribute("aria-hidden", "false");
+  }
+
+  function closeModal(modal) {
+    modal.classList.add("is-hidden");
+    modal.setAttribute("aria-hidden", "true");
+  }
+
+  function getSelectionKey(productId, size) {
+    return productId + "::" + size;
+  }
+
+  function getSelectedItems() {
+    const products = GoodsData.getProducts();
+    const items = [];
+
+    products.forEach(function (product) {
+      product.sizes.forEach(function (size) {
+        const quantity = Number(selectionState[getSelectionKey(product.id, size)] || 0);
+        if (quantity > 0) {
+          items.push({
+            productId: product.id,
+            productName: product.name,
+            size: size,
+            quantity: quantity,
+            unitPrice: product.price,
+            totalPrice: product.price * quantity,
+            stock: Number(product.remainingStock[size] || 0),
+            soldOut: product.soldOut || Number(product.remainingStock[size] || 0) <= 0
+          });
+        }
+      });
+    });
+
+    return items;
+  }
+
+  function renderProducts() {
+    const products = GoodsData.getProducts();
+
+    productList.innerHTML = products.map(function (product) {
+      const soldOut = GoodsData.isProductActuallySoldOut(product);
+
+      const sizeControls = product.sizes.map(function (size) {
+        const stock = Number(product.remainingStock[size] || 0);
+        const quantity = Number(selectionState[getSelectionKey(product.id, size)] || 0);
+        const disabled = product.soldOut || stock <= 0;
+
+        return [
+          '<div class="size-control-row' + (disabled ? " is-disabled" : "") + '">',
+          '<div class="size-control-meta">',
+          "<strong>" + size + "</strong>",
+          "<span>남은 재고 " + stock + "개</span>",
+          "</div>",
+          '<div class="quantity-stepper">',
+          '<button type="button" class="stepper-button" data-action="decrease" data-product-id="' + product.id + '" data-size="' + size + '"' + (quantity <= 0 ? " disabled" : "") + ">-</button>",
+          '<span class="stepper-count">' + quantity + "</span>",
+          '<button type="button" class="stepper-button" data-action="increase" data-product-id="' + product.id + '" data-size="' + size + '"' + (disabled || quantity >= stock ? " disabled" : "") + ">+</button>",
+          "</div>",
+          "</div>"
+        ].join("");
+      }).join("");
+
+      return [
+        '<article class="product-card product-card-shop' + (soldOut ? " is-sold-out" : "") + '">',
+        '<img class="product-image" src="' + product.imageUrl + '" alt="' + product.name + '">',
+        '<div class="product-body">',
+        '<div class="product-topline">',
+        "<h3>" + product.name + "</h3>",
+        '<span class="badge' + (soldOut ? " sold-out" : "") + '">' + (soldOut ? "품절" : "판매중") + "</span>",
+        "</div>",
+        '<p class="price">' + formatCurrency(product.price) + "</p>",
+        '<div class="size-control-list">' + sizeControls + "</div>",
+        "</div>",
+        "</article>"
+      ].join("");
+    }).join("");
+  }
+
+  function renderSummaryContent(items) {
+    const totalQuantity = items.reduce(function (sum, item) {
+      return sum + item.quantity;
+    }, 0);
+    const totalPrice = items.reduce(function (sum, item) {
+      return sum + item.totalPrice;
+    }, 0);
+
+    return [
+      '<div class="summary-list">',
+      items.map(function (item) {
+        return [
+          '<div class="summary-item">',
+          '<div class="summary-item-main">',
+          "<strong>" + item.productName + "</strong>",
+          "<span>" + item.size + " / " + item.quantity + "개</span>",
+          "</div>",
+          '<strong class="summary-price">' + formatCurrency(item.totalPrice) + "</strong>",
+          "</div>"
+        ].join("");
+      }).join(""),
+      "</div>",
+      '<div class="summary-total">',
+      "<span>총 " + totalQuantity + "개</span>",
+      "<strong>" + formatCurrency(totalPrice) + "</strong>",
+      "</div>"
+    ].join("");
+  }
+
+  function updateSummary() {
+    const items = getSelectedItems();
+    const totalQuantity = items.reduce(function (sum, item) {
+      return sum + item.quantity;
+    }, 0);
+    const invalidItem = items.find(function (item) {
+      return item.soldOut || item.quantity > item.stock;
+    });
+
+    if (!items.length) {
+      stockStatus.textContent = "상품 카드에서 옵션별 수량을 선택해주세요.";
+      stockStatus.className = "stock-status";
+      orderSummary.innerHTML = '<div class="summary-empty"><strong>선택한 굿즈가 없습니다.</strong><p>왼쪽 상품 카드에서 + 버튼으로 수량을 담아주세요.</p></div>';
+      return;
+    }
+
+    orderSummary.innerHTML = renderSummaryContent(items);
+
+    if (invalidItem) {
+      stockStatus.textContent = "일부 선택 수량이 현재 재고와 맞지 않습니다. 수량을 다시 확인해주세요.";
+      stockStatus.className = "stock-status danger";
+    } else {
+      stockStatus.textContent = "총 " + totalQuantity + "개 상품이 선택되었습니다. 구매 진행이 가능합니다.";
+      stockStatus.className = "stock-status";
+    }
+  }
+
+  function changeQuantity(productId, size, delta) {
+    const products = GoodsData.getProducts();
+    const product = products.find(function (item) {
+      return item.id === productId;
+    });
+
+    if (!product) {
+      return;
+    }
+
+    const stock = Number(product.remainingStock[size] || 0);
+    const key = getSelectionKey(productId, size);
+    const current = Number(selectionState[key] || 0);
+    const next = Math.max(0, Math.min(stock, current + delta));
+
+    selectionState[key] = next;
+    if (next === 0) {
+      delete selectionState[key];
+    }
+
+    renderProducts();
+    updateSummary();
+  }
+
+  function resetSelections() {
+    Object.keys(selectionState).forEach(function (key) {
+      delete selectionState[key];
+    });
+  }
+
+  function setAdminConfirmStepVisible(isVisible) {
+    adminConfirmSection.classList.toggle("is-hidden", !isVisible);
+    confirmPaymentButton.classList.toggle("is-hidden", !isVisible);
+    showAdminConfirmButton.classList.toggle("is-hidden", isVisible);
+    cancelPaymentModalButton.textContent = isVisible ? "이전" : "이전";
+  }
+
+  function resetFlow() {
+    resetSelections();
+    stagedItems = [];
+    pendingOrderId = "";
+    adminCodeInput.value = "";
+    setAdminConfirmStepVisible(false);
+    closeModal(paymentModal);
+    closeModal(buyerCodeModal);
+    renderProducts();
+    updateSummary();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function validateSelectedItems() {
+    const selectedItems = getSelectedItems();
+    if (!selectedItems.length) {
+      alert("최소 1개 이상 굿즈를 선택해주세요.");
+      return null;
+    }
+
+    const invalidItem = selectedItems.find(function (item) {
+      return item.soldOut || item.quantity > item.stock;
+    });
+
+    if (invalidItem) {
+      alert("재고가 부족하거나 품절된 상품이 포함되어 있습니다.");
+      renderProducts();
+      updateSummary();
+      return null;
+    }
+
+    return selectedItems;
+  }
+
+  function handleOrderSubmit(event) {
+    event.preventDefault();
+    const selectedItems = validateSelectedItems();
+    if (!selectedItems) {
+      return;
+    }
+
+    stagedItems = selectedItems;
+    paymentSummary.innerHTML = renderSummaryContent(selectedItems);
+    adminCodeInput.value = "";
+    setAdminConfirmStepVisible(false);
+    openModal(paymentModal);
+  }
+
+  function handleShowAdminConfirm() {
+    if (!stagedItems.length) {
+      closeModal(paymentModal);
+      return;
+    }
+
+    try {
+      if (!pendingOrderId) {
+        const pendingOrder = GoodsData.createPendingOrder({
+          items: stagedItems.map(function (item) {
+            return {
+              productId: item.productId,
+              size: item.size,
+              quantity: item.quantity
+            };
+          })
+        });
+        pendingOrderId = pendingOrder.id;
+      }
+
+      setAdminConfirmStepVisible(true);
+      renderProducts();
+      updateSummary();
+      alert("구매 번호가 생성되었습니다. 관리자 페이지의 확정 대기에서 바로 확인할 수 있습니다.");
+    } catch (error) {
+      alert(error.message);
+      closeModal(paymentModal);
+      renderProducts();
+      updateSummary();
+    }
+  }
+
+  function handleConfirmPayment() {
+    if (!pendingOrderId) {
+      return;
+    }
+
+    try {
+      const confirmedOrder = GoodsData.confirmPendingOrder(pendingOrderId, adminCodeInput.value.trim());
+      pendingOrderId = "";
+      closeModal(paymentModal);
+      buyerCodeBox.textContent = confirmedOrder.buyerConfirmationCode;
+      openModal(buyerCodeModal);
+    } catch (error) {
+      alert(error.message);
+    }
+  }
+
+  function handlePreviousStep() {
+    if (!pendingOrderId) {
+      closeModal(paymentModal);
+      return;
+    }
+
+    adminCodeInput.value = "";
+    setAdminConfirmStepVisible(false);
+  }
+
+  function closePaymentFlow() {
+    if (pendingOrderId) {
+      GoodsData.deletePendingOrder(pendingOrderId);
+      pendingOrderId = "";
+    }
+
+    stagedItems = [];
+    adminCodeInput.value = "";
+    setAdminConfirmStepVisible(false);
+    closeModal(paymentModal);
+    renderProducts();
+    updateSummary();
+  }
+
+  function initializeShopAccess() {
+    if (sessionStorage.getItem("goods-shop-shop-auth") === "true") {
+      closeModal(shopAccessModal);
+      return;
+    }
+
+    openModal(shopAccessModal);
+  }
+
+  shopAccessForm.addEventListener("submit", function (event) {
+    event.preventDefault();
+
+    if (shopAccessPasswordInput.value !== GoodsData.getShopPassword()) {
+      alert("입장 비밀번호가 올바르지 않습니다.");
+      shopAccessPasswordInput.select();
+      return;
+    }
+
+    sessionStorage.setItem("goods-shop-shop-auth", "true");
+    shopAccessForm.reset();
+    closeModal(shopAccessModal);
+  });
+
+  productList.addEventListener("click", function (event) {
+    const target = event.target;
+    if (!(target instanceof HTMLElement) || !target.dataset.action) {
+      return;
+    }
+
+    const delta = target.dataset.action === "increase" ? 1 : -1;
+    changeQuantity(target.dataset.productId, target.dataset.size, delta);
+  });
+
+  orderForm.addEventListener("submit", handleOrderSubmit);
+  showAdminConfirmButton.addEventListener("click", handleShowAdminConfirm);
+  confirmPaymentButton.addEventListener("click", handleConfirmPayment);
+  closePaymentModalButton.addEventListener("click", closePaymentFlow);
+  cancelPaymentModalButton.addEventListener("click", handlePreviousStep);
+  finishBuyerFlowButton.addEventListener("click", resetFlow);
+
+  window.addEventListener("storage", function () {
+    renderProducts();
+    updateSummary();
+  });
+
+  renderProducts();
+  updateSummary();
+  initializeShopAccess();
+})();
