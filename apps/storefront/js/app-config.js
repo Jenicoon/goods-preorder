@@ -1,1 +1,3 @@
-API_BASE_URL: "https://goods-backend.vercel.app"
+window.APP_CONFIG = window.APP_CONFIG || {
+  API_BASE_URL: "https://goods-backend.vercel.app"
+};
