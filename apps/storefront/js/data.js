@@ -45,7 +45,7 @@
   }
 
   async function syncStorefrontData() {
-    const result = await request("/api/public/catalog", {
+    const result = await request("/api/public/products", {
       method: "GET"
     });
     state.products = result.products || [];
