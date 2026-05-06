@@ -41,16 +41,17 @@ function handleCors(req, res, allowedOrigins) {
     ? allowedOrigins.filter(Boolean)
     : [allowedOrigins].filter(Boolean);
 
-  if (!normalizedOrigins.length) {
+  if (!normalizedOrigins.length && !origin) {
     return false;
   }
 
-  const matchedOrigin = normalizedOrigins.includes(origin)
-    ? origin
-    : normalizedOrigins[0];
+  // For browser requests, prefer reflecting the actual Origin so separate
+  // Vercel projects can communicate without brittle exact-domain matching.
+  const matchedOrigin = origin || normalizedOrigins[0];
 
   res.setHeader("Access-Control-Allow-Origin", matchedOrigin);
   res.setHeader("Vary", "Origin");
+  res.setHeader("Access-Control-Allow-Credentials", "true");
   res.setHeader("Access-Control-Allow-Methods", "GET,POST,PATCH,DELETE,OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
