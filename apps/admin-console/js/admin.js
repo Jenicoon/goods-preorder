@@ -37,7 +37,7 @@
   }
 
   async function loginWithPassword(password) {
-    return request("/api/admin-login", {
+    return request("/api/admin/login", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -47,13 +47,13 @@
   }
 
   async function checkSession() {
-    return request("/api/admin-session", {
+    return request("/api/admin/session", {
       method: "GET"
     });
   }
 
   async function logoutSession() {
-    return request("/api/logout", {
+    return request("/api/auth/logout", {
       method: "POST"
     });
   }

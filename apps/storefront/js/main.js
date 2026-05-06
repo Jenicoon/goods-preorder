@@ -23,7 +23,7 @@
   let pendingOrderId = "";
 
   async function verifyShopAccess(password) {
-    const response = await fetch((window.APP_CONFIG && window.APP_CONFIG.API_BASE_URL ? window.APP_CONFIG.API_BASE_URL.replace(/\/+$/, "") : window.location.origin) + "/api/shop-access", {
+    const response = await fetch((window.APP_CONFIG && window.APP_CONFIG.API_BASE_URL ? window.APP_CONFIG.API_BASE_URL.replace(/\/+$/, "") : window.location.origin) + "/api/public/shop-access", {
       method: "POST",
       credentials: "include",
       headers: {
