@@ -22,6 +22,40 @@
   let stagedItems = [];
   let pendingOrderId = "";
 
+  function getApiBaseUrl() {
+    const configuredBaseUrl = window.APP_CONFIG && window.APP_CONFIG.API_BASE_URL;
+    return configuredBaseUrl ? configuredBaseUrl.replace(/\/+$/, "") : window.location.origin;
+  }
+
+  async function request(path, options) {
+    const response = await fetch(getApiBaseUrl() + path, Object.assign({
+      credentials: "include"
+    }, options || {}));
+
+    const data = await response.json().catch(function () {
+      return {};
+    });
+
+    if (!response.ok) {
+      const message = data && data.error && data.error.message
+        ? data.error.message
+        : "요청 처리에 실패했습니다.";
+      throw new Error(message);
+    }
+
+    return data;
+  }
+
+  async function verifyShopAccess(password) {
+    return request("/api/public/shop-access", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ password: password })
+    });
+  }
+
   function formatCurrency(value) {
     return new Intl.NumberFormat("ko-KR", {
       style: "currency",
@@ -162,7 +196,7 @@
       stockStatus.textContent = "일부 선택 수량이 현재 재고와 맞지 않습니다. 수량을 다시 확인해주세요.";
       stockStatus.className = "stock-status danger";
     } else {
-      stockStatus.textContent = "총 " + totalQuantity + "개 상품이 선택되었습니다. 구매 진행이 가능합니다.";
+      stockStatus.textContent = "총 " + totalQuantity + "개 상품을 선택했습니다. 구매 진행이 가능합니다.";
       stockStatus.className = "stock-status";
     }
   }
@@ -201,7 +235,7 @@
     adminConfirmSection.classList.toggle("is-hidden", !isVisible);
     confirmPaymentButton.classList.toggle("is-hidden", !isVisible);
     showAdminConfirmButton.classList.toggle("is-hidden", isVisible);
-    cancelPaymentModalButton.textContent = isVisible ? "이전" : "이전";
+    cancelPaymentModalButton.textContent = "이전";
   }
 
   function resetFlow() {
@@ -333,18 +367,18 @@
     openModal(shopAccessModal);
   }
 
-  shopAccessForm.addEventListener("submit", function (event) {
+  shopAccessForm.addEventListener("submit", async function (event) {
     event.preventDefault();
 
-    if (shopAccessPasswordInput.value !== GoodsData.getShopPassword()) {
-      alert("입장 비밀번호가 올바르지 않습니다.");
+    try {
+      await verifyShopAccess(shopAccessPasswordInput.value);
+      sessionStorage.setItem("goods-shop-shop-auth", "true");
+      shopAccessForm.reset();
+      closeModal(shopAccessModal);
+    } catch (error) {
+      alert(error.message || "입장 비밀번호가 올바르지 않습니다.");
       shopAccessPasswordInput.select();
-      return;
     }
-
-    sessionStorage.setItem("goods-shop-shop-auth", "true");
-    shopAccessForm.reset();
-    closeModal(shopAccessModal);
   });
 
   productList.addEventListener("click", function (event) {

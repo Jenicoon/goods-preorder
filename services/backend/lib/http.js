@@ -35,12 +35,21 @@ function readJsonBody(req) {
   return req.body || {};
 }
 
-function handleCors(req, res, allowedOrigin) {
-  if (!allowedOrigin) {
+function handleCors(req, res, allowedOrigins) {
+  const origin = req.headers.origin;
+  const normalizedOrigins = Array.isArray(allowedOrigins)
+    ? allowedOrigins.filter(Boolean)
+    : [allowedOrigins].filter(Boolean);
+
+  if (!normalizedOrigins.length) {
     return false;
   }
 
-  res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
+  const matchedOrigin = normalizedOrigins.includes(origin)
+    ? origin
+    : normalizedOrigins[0];
+
+  res.setHeader("Access-Control-Allow-Origin", matchedOrigin);
   res.setHeader("Vary", "Origin");
   res.setHeader("Access-Control-Allow-Methods", "GET,POST,PATCH,DELETE,OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");

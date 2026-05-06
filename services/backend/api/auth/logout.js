@@ -1,9 +1,9 @@
-const { getPublicOrigin } = require("../../lib/config");
+const { getAllowedOrigins } = require("../../lib/config");
 const { handleCors, sendJson } = require("../../lib/http");
 const { clearSessionCookie } = require("../../lib/session");
 
 module.exports = function handler(req, res) {
-  if (handleCors(req, res, getPublicOrigin())) {
+  if (handleCors(req, res, getAllowedOrigins())) {
     return;
   }
 

@@ -16,6 +16,17 @@ function getPublicOrigin() {
   return optional("PUBLIC_APP_ORIGIN");
 }
 
+function getAdminConsoleOrigin() {
+  return optional("ADMIN_CONSOLE_ORIGIN");
+}
+
+function getAllowedOrigins() {
+  return [
+    getPublicOrigin(),
+    getAdminConsoleOrigin()
+  ].filter(Boolean);
+}
+
 function getCookieDomain() {
   return optional("COOKIE_DOMAIN");
 }
@@ -37,7 +48,9 @@ function getShopAccessPassword() {
 }
 
 module.exports = {
+  getAdminConsoleOrigin,
   getAdminPassword,
+  getAllowedOrigins,
   getCookieDomain,
   getPublicOrigin,
   getSessionSecret,
