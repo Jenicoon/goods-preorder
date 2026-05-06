@@ -7,10 +7,14 @@
   const adminLoginForm = document.getElementById("adminLoginForm");
   const adminPasswordInput = document.getElementById("adminPasswordInput");
   const adminLogoutButton = document.getElementById("adminLogoutButton");
+  const adminRefreshButton = document.getElementById("adminRefreshButton");
+  const adminSyncStatus = document.getElementById("adminSyncStatus");
   const adminStats = document.getElementById("adminStats");
   const pendingOrdersTableBody = document.getElementById("pendingOrdersTableBody");
   const ordersTableBody = document.getElementById("ordersTableBody");
   const inventoryTableBody = document.getElementById("inventoryTableBody");
+  let refreshTimer = null;
+  let syncInFlight = null;
 
   function getApiBaseUrl() {
     const configuredBaseUrl = window.APP_CONFIG && window.APP_CONFIG.API_BASE_URL;
@@ -71,6 +75,16 @@
   function setLoggedIn(isLoggedIn) {
     adminLoginSection.classList.toggle("is-hidden", isLoggedIn);
     adminDashboard.classList.toggle("is-hidden", !isLoggedIn);
+  }
+
+  function setSyncStatus(message, isBusy) {
+    if (adminSyncStatus) {
+      adminSyncStatus.textContent = message;
+    }
+
+    if (adminRefreshButton) {
+      adminRefreshButton.disabled = Boolean(isBusy);
+    }
   }
 
   function formatCurrency(value) {
@@ -177,12 +191,60 @@
     renderInventory();
   }
 
+  async function syncDashboard(forceMessage) {
+    if (syncInFlight) {
+      return syncInFlight;
+    }
+
+    setSyncStatus(forceMessage || "동기화 중", true);
+
+    syncInFlight = GoodsData.syncDashboardData()
+      .then(function () {
+        refreshDashboard();
+        setSyncStatus("방금 동기화됨", false);
+      })
+      .catch(function (error) {
+        setSyncStatus("동기화 실패", false);
+        throw error;
+      })
+      .finally(function () {
+        syncInFlight = null;
+      });
+
+    return syncInFlight;
+  }
+
+  function startAutoRefresh() {
+    if (refreshTimer) {
+      return;
+    }
+
+    refreshTimer = window.setInterval(function () {
+      if (document.hidden || adminDashboard.classList.contains("is-hidden")) {
+        return;
+      }
+
+      syncDashboard("자동 동기화 중").catch(function (error) {
+        console.error(error);
+      });
+    }, 3000);
+  }
+
+  function stopAutoRefresh() {
+    if (!refreshTimer) {
+      return;
+    }
+
+    window.clearInterval(refreshTimer);
+    refreshTimer = null;
+  }
+
   async function handleLogin(password) {
     await loginWithPassword(password);
-    await GoodsData.syncDashboardData();
+    await syncDashboard("로그인 후 불러오는 중");
     closeModal(adminAccessModal);
     setLoggedIn(true);
-    refreshDashboard();
+    startAutoRefresh();
   }
 
   async function initializeAdminAccess() {
@@ -190,10 +252,10 @@
 
     try {
       await checkSession();
-      await GoodsData.syncDashboardData();
+      await syncDashboard("세션 확인 중");
       closeModal(adminAccessModal);
       setLoggedIn(true);
-      refreshDashboard();
+      startAutoRefresh();
       return;
     } catch (error) {
       openModal(adminAccessModal);
@@ -233,9 +295,20 @@
 
     adminLoginForm.reset();
     adminAccessForm.reset();
+    stopAutoRefresh();
     setLoggedIn(false);
     openModal(adminAccessModal);
   });
+
+  if (adminRefreshButton) {
+    adminRefreshButton.addEventListener("click", async function () {
+      try {
+        await syncDashboard("수동 새로고침 중");
+      } catch (error) {
+        alert(error.message || "새로고침 중 문제가 발생했습니다.");
+      }
+    });
+  }
 
   pendingOrdersTableBody.addEventListener("click", function (event) {
     const target = event.target;
@@ -266,7 +339,7 @@
 
     if (target.dataset.action === "complete-order") {
       await GoodsData.updateOrderStatus(target.dataset.id, "처리 완료");
-      refreshDashboard();
+      await syncDashboard("변경사항 동기화 중");
     }
   });
 

@@ -126,6 +126,19 @@ button {
   margin-left: auto;
 }
 
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.sync-status {
+  color: var(--muted);
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
 main {
   flex: 1;
 }

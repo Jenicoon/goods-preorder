@@ -228,6 +228,18 @@
     await resetOrders();
   }
 
+  async function updatePasswords(passwordInput) {
+    const result = await request("/api/super-admin/passwords", {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(passwordInput || {})
+    });
+
+    return clone(result.authSettings || {});
+  }
+
   function calculateRevenue() {
     const orders = getOrders();
     const pendingOrders = getPendingOrders();
@@ -311,6 +323,7 @@
     resetInventory: resetInventory,
     resetAllData: resetAllData,
     clearRevenueStatistics: clearRevenueStatistics,
+    updatePasswords: updatePasswords,
     calculateRevenue: calculateRevenue,
     isProductActuallySoldOut: isProductActuallySoldOut,
     getAdminPassword: getAdminPassword,

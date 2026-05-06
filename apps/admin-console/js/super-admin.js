@@ -7,9 +7,15 @@
   const loginForm = document.getElementById("superAdminLoginForm");
   const passwordInput = document.getElementById("superAdminPasswordInput");
   const logoutButton = document.getElementById("superAdminLogoutButton");
+  const refreshButton = document.getElementById("superAdminRefreshButton");
+  const syncStatus = document.getElementById("superAdminSyncStatus");
   const systemSummaryStats = document.getElementById("systemSummaryStats");
   const adminPasswordChangeForm = document.getElementById("adminPasswordChangeForm");
   const superPasswordChangeForm = document.getElementById("superPasswordChangeForm");
+  const shopPasswordChangeForm = document.getElementById("shopPasswordChangeForm");
+  const newAdminPasswordInput = document.getElementById("newAdminPasswordInput");
+  const newSuperPasswordInput = document.getElementById("newSuperPasswordInput");
+  const newShopPasswordInput = document.getElementById("newShopPasswordInput");
   const superPendingOrdersTableBody = document.getElementById("superPendingOrdersTableBody");
   const superOrdersTableBody = document.getElementById("superOrdersTableBody");
   const deletedOrdersTableBody = document.getElementById("deletedOrdersTableBody");
@@ -22,6 +28,8 @@
   const resetProductsButton = document.getElementById("resetProductsButton");
   const resetRevenueButton = document.getElementById("resetRevenueButton");
   const resetAllDataButton = document.getElementById("resetAllDataButton");
+  let refreshTimer = null;
+  let syncInFlight = null;
 
   function getApiBaseUrl() {
     const configuredBaseUrl = window.APP_CONFIG && window.APP_CONFIG.API_BASE_URL;
@@ -98,6 +106,16 @@
     dashboard.classList.toggle("is-hidden", !isLoggedIn);
   }
 
+  function setSyncStatus(message, isBusy) {
+    if (syncStatus) {
+      syncStatus.textContent = message;
+    }
+
+    if (refreshButton) {
+      refreshButton.disabled = Boolean(isBusy);
+    }
+  }
+
   function statCard(label, value) {
     return '<article class="stat-card"><span>' + label + "</span><strong>" + value + "</strong></article>";
   }
@@ -114,7 +132,7 @@
     }
 
     await action();
-    refresh();
+    await syncDashboard("변경사항 동기화 중");
   }
 
   function renderSummary() {
@@ -293,6 +311,54 @@
     renderProductManager();
   }
 
+  async function syncDashboard(forceMessage) {
+    if (syncInFlight) {
+      return syncInFlight;
+    }
+
+    setSyncStatus(forceMessage || "동기화 중", true);
+
+    syncInFlight = GoodsData.syncDashboardData()
+      .then(function () {
+        refresh();
+        setSyncStatus("방금 동기화됨", false);
+      })
+      .catch(function (error) {
+        setSyncStatus("동기화 실패", false);
+        throw error;
+      })
+      .finally(function () {
+        syncInFlight = null;
+      });
+
+    return syncInFlight;
+  }
+
+  function startAutoRefresh() {
+    if (refreshTimer) {
+      return;
+    }
+
+    refreshTimer = window.setInterval(function () {
+      if (document.hidden || dashboard.classList.contains("is-hidden")) {
+        return;
+      }
+
+      syncDashboard("자동 동기화 중").catch(function (error) {
+        console.error(error);
+      });
+    }, 3000);
+  }
+
+  function stopAutoRefresh() {
+    if (!refreshTimer) {
+      return;
+    }
+
+    window.clearInterval(refreshTimer);
+    refreshTimer = null;
+  }
+
   async function applyStockFromInput(productId, size) {
     const input = superProductManagerList.querySelector('[data-role="stock-input"][data-id="' + productId + '"][data-size="' + size + '"]');
     if (!input) {
@@ -305,10 +371,10 @@
 
   async function handleLogin(password) {
     await loginWithPassword(password);
-    await GoodsData.syncDashboardData();
+    await syncDashboard("로그인 후 불러오는 중");
     closeModal(accessModal);
     setLoggedIn(true);
-    refresh();
+    startAutoRefresh();
   }
 
   async function initializeSuperAdminAccess() {
@@ -316,10 +382,10 @@
 
     try {
       await checkSession();
-      await GoodsData.syncDashboardData();
+      await syncDashboard("세션 확인 중");
       closeModal(accessModal);
       setLoggedIn(true);
-      refresh();
+      startAutoRefresh();
       return;
     } catch (error) {
       openModal(accessModal);
@@ -359,20 +425,61 @@
 
     loginForm.reset();
     accessForm.reset();
+    stopAutoRefresh();
     setLoggedIn(false);
     openModal(accessModal);
   });
 
-  adminPasswordChangeForm.addEventListener("submit", function (event) {
+  if (refreshButton) {
+    refreshButton.addEventListener("click", async function () {
+      try {
+        await syncDashboard("수동 새로고침 중");
+      } catch (error) {
+        alert(error.message || "새로고침 중 문제가 발생했습니다.");
+      }
+    });
+  }
+
+  adminPasswordChangeForm.addEventListener("submit", async function (event) {
     event.preventDefault();
-    adminPasswordChangeForm.reset();
-    alert("관리자 비밀번호 변경은 백엔드 환경변수 또는 전용 API에서 관리해주세요.");
+
+    try {
+      await GoodsData.updatePasswords({
+        adminPassword: newAdminPasswordInput.value
+      });
+      adminPasswordChangeForm.reset();
+      alert("관리자 비밀번호를 저장했습니다.");
+    } catch (error) {
+      alert(error.message || "관리자 비밀번호 저장에 실패했습니다.");
+    }
   });
 
-  superPasswordChangeForm.addEventListener("submit", function (event) {
+  superPasswordChangeForm.addEventListener("submit", async function (event) {
     event.preventDefault();
-    superPasswordChangeForm.reset();
-    alert("슈퍼 관리자 비밀번호 변경은 백엔드 환경변수 또는 전용 API에서 관리해주세요.");
+
+    try {
+      await GoodsData.updatePasswords({
+        superAdminPassword: newSuperPasswordInput.value
+      });
+      superPasswordChangeForm.reset();
+      alert("슈퍼 관리자 비밀번호를 저장했습니다.");
+    } catch (error) {
+      alert(error.message || "슈퍼 관리자 비밀번호 저장에 실패했습니다.");
+    }
+  });
+
+  shopPasswordChangeForm.addEventListener("submit", async function (event) {
+    event.preventDefault();
+
+    try {
+      await GoodsData.updatePasswords({
+        shopAccessPassword: newShopPasswordInput.value
+      });
+      shopPasswordChangeForm.reset();
+      alert("판매 페이지 비밀번호를 저장했습니다.");
+    } catch (error) {
+      alert(error.message || "판매 페이지 비밀번호 저장에 실패했습니다.");
+    }
   });
 
   productFilterSelect.addEventListener("change", renderProductManager);
@@ -413,7 +520,7 @@
 
     if (target.dataset.action === "complete-order") {
       await GoodsData.updateOrderStatus(target.dataset.id, "처리 완료");
-      refresh();
+      await syncDashboard("변경사항 동기화 중");
       return;
     }
 

@@ -9,7 +9,8 @@ const {
   resetOrders,
   resetProducts,
   restoreDeletedOrder,
-  setProductStock
+  setProductStock,
+  updateAuthSettings
 } = require("../lib/store");
 
 module.exports = async function handler(req, res) {
@@ -70,6 +71,26 @@ module.exports = async function handler(req, res) {
       sendJson(res, 200, {
         success: true,
         product: product
+      });
+      return;
+    }
+
+    if (action === "update-passwords") {
+      if (req.method !== "PATCH") {
+        sendError(res, 405, "PATCH ?붿껌留??덉슜?⑸땲??", "METHOD_NOT_ALLOWED");
+        return;
+      }
+
+      const body = readJsonBody(req);
+      const authSettings = await updateAuthSettings({
+        adminPassword: body.adminPassword,
+        superAdminPassword: body.superAdminPassword,
+        shopAccessPassword: body.shopAccessPassword
+      });
+
+      sendJson(res, 200, {
+        success: true,
+        authSettings: authSettings
       });
       return;
     }

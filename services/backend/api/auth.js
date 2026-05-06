@@ -1,7 +1,7 @@
-const { getAllowedOrigins, getShopAccessPassword } = require("../lib/config");
+const { getAllowedOrigins } = require("../lib/config");
 const { handleCors, readJsonBody, sendError, sendJson } = require("../lib/http");
-const { matchesAdminPassword, matchesSuperAdminPassword } = require("../lib/passwords");
 const { attachSessionCookie, clearSessionCookie, requireRole } = require("../lib/session");
+const { getAuthSettings } = require("../lib/store");
 
 module.exports = async function handler(req, res) {
   if (handleCors(req, res, getAllowedOrigins())) {
@@ -17,7 +17,9 @@ module.exports = async function handler(req, res) {
     }
 
     const body = readJsonBody(req);
-    if (!body.password || body.password !== getShopAccessPassword()) {
+    const authSettings = await getAuthSettings();
+
+    if (!body.password || body.password !== authSettings.shopAccessPassword) {
       sendError(res, 401, "판매 페이지 입장 비밀번호가 올바르지 않습니다.", "INVALID_PASSWORD");
       return;
     }
@@ -33,7 +35,9 @@ module.exports = async function handler(req, res) {
     }
 
     const body = readJsonBody(req);
-    if (!matchesAdminPassword(body.password)) {
+    const authSettings = await getAuthSettings();
+
+    if (body.password !== authSettings.adminPassword) {
       sendError(res, 401, "관리자 비밀번호가 올바르지 않습니다.", "INVALID_PASSWORD");
       return;
     }
@@ -54,7 +58,9 @@ module.exports = async function handler(req, res) {
     }
 
     const body = readJsonBody(req);
-    if (!matchesSuperAdminPassword(body.password)) {
+    const authSettings = await getAuthSettings();
+
+    if (body.password !== authSettings.superAdminPassword) {
       sendError(res, 401, "슈퍼 관리자 비밀번호가 올바르지 않습니다.", "INVALID_PASSWORD");
       return;
     }

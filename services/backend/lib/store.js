@@ -1,5 +1,12 @@
+const {
+  getAdminPassword,
+  getShopAccessPassword,
+  getSuperAdminPassword
+} = require("./config");
 const { getFirestore } = require("./firebase-admin");
 const { DEFAULT_PRODUCTS } = require("./default-products");
+
+const AUTH_SETTINGS_DOC_ID = "auth";
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -62,6 +69,64 @@ async function ensureProductsSeeded() {
     batch.set(db.collection("products").doc(product.id), clone(product));
   });
   await batch.commit();
+}
+
+function getDefaultAuthSettings() {
+  return {
+    adminPassword: getAdminPassword(),
+    superAdminPassword: getSuperAdminPassword(),
+    shopAccessPassword: getShopAccessPassword(),
+    updatedAt: new Date().toISOString()
+  };
+}
+
+async function ensureAuthSettingsSeeded() {
+  const db = getFirestore();
+  const settingsRef = db.collection("settings").doc(AUTH_SETTINGS_DOC_ID);
+  const snapshot = await settingsRef.get();
+
+  if (snapshot.exists) {
+    return;
+  }
+
+  await settingsRef.set(getDefaultAuthSettings());
+}
+
+async function getAuthSettings() {
+  await ensureAuthSettingsSeeded();
+  const db = getFirestore();
+  const snapshot = await db.collection("settings").doc(AUTH_SETTINGS_DOC_ID).get();
+  const data = snapshot.exists ? snapshot.data() : {};
+  const defaults = getDefaultAuthSettings();
+
+  return {
+    adminPassword: data.adminPassword || defaults.adminPassword,
+    superAdminPassword: data.superAdminPassword || defaults.superAdminPassword,
+    shopAccessPassword: data.shopAccessPassword || defaults.shopAccessPassword,
+    updatedAt: data.updatedAt || defaults.updatedAt
+  };
+}
+
+async function updateAuthSettings(nextValues) {
+  const current = await getAuthSettings();
+  const db = getFirestore();
+  const settingsRef = db.collection("settings").doc(AUTH_SETTINGS_DOC_ID);
+
+  const updated = {
+    adminPassword: typeof nextValues.adminPassword === "string" && nextValues.adminPassword.trim()
+      ? nextValues.adminPassword.trim()
+      : current.adminPassword,
+    superAdminPassword: typeof nextValues.superAdminPassword === "string" && nextValues.superAdminPassword.trim()
+      ? nextValues.superAdminPassword.trim()
+      : current.superAdminPassword,
+    shopAccessPassword: typeof nextValues.shopAccessPassword === "string" && nextValues.shopAccessPassword.trim()
+      ? nextValues.shopAccessPassword.trim()
+      : current.shopAccessPassword,
+    updatedAt: new Date().toISOString()
+  };
+
+  await settingsRef.set(updated, { merge: true });
+  return updated;
 }
 
 async function getProducts() {
@@ -446,10 +511,13 @@ async function resetProducts() {
 async function resetAllData() {
   await resetOrders();
   await resetProducts();
+  const db = getFirestore();
+  await db.collection("settings").doc(AUTH_SETTINGS_DOC_ID).set(getDefaultAuthSettings());
   return true;
 }
 
 module.exports = {
+  getAuthSettings,
   createPendingOrder,
   confirmPendingOrder,
   deleteOrder,
@@ -467,5 +535,6 @@ module.exports = {
   resetProducts,
   restoreDeletedOrder,
   setProductStock,
+  updateAuthSettings,
   updateOrderStatus
 };
