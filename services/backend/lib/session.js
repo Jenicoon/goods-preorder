@@ -81,20 +81,47 @@ function parseCookies(req) {
   }, {});
 }
 
-function buildCookie(value, expiresAt) {
+function isSecureRequest(req) {
+  const forwardedProto = req.headers["x-forwarded-proto"];
+  const forwardedSsl = req.headers["x-forwarded-ssl"];
+
+  return (
+    process.env.NODE_ENV === "production" ||
+    process.env.VERCEL === "1" ||
+    forwardedProto === "https" ||
+    forwardedSsl === "on"
+  );
+}
+
+function normalizeCookieDomain(value) {
+  if (!value) {
+    return "";
+  }
+
+  const normalized = String(value).trim().replace(/^https?:\/\//i, "").replace(/\/.*$/, "");
+
+  // Ignore obviously invalid values so the browser can fall back to a host-only cookie.
+  if (!normalized || normalized.includes(":") || normalized.includes(" ")) {
+    return "";
+  }
+
+  return normalized;
+}
+
+function buildCookie(req, value, expiresAt) {
   const parts = [
     `${COOKIE_NAME}=${encodeURIComponent(value)}`,
     "Path=/",
     "HttpOnly",
-    "SameSite=Lax",
+    "SameSite=None",
     `Expires=${new Date(expiresAt).toUTCString()}`
   ];
 
-  if (process.env.NODE_ENV === "production") {
+  if (isSecureRequest(req)) {
     parts.push("Secure");
   }
 
-  const cookieDomain = getCookieDomain();
+  const cookieDomain = normalizeCookieDomain(getCookieDomain());
 
   if (cookieDomain) {
     parts.push(`Domain=${cookieDomain}`);
@@ -103,17 +130,17 @@ function buildCookie(value, expiresAt) {
   return parts.join("; ");
 }
 
-function attachSessionCookie(res, role) {
+function attachSessionCookie(req, res, role) {
   const sessionValue = createSessionValue(role);
   const payload = verifySessionValue(sessionValue);
 
-  res.setHeader("Set-Cookie", buildCookie(sessionValue, payload.expiresAt));
+  res.setHeader("Set-Cookie", buildCookie(req, sessionValue, payload.expiresAt));
 
   return payload;
 }
 
-function clearSessionCookie(res) {
-  res.setHeader("Set-Cookie", buildCookie("", 0));
+function clearSessionCookie(req, res) {
+  res.setHeader("Set-Cookie", buildCookie(req, "", 0));
 }
 
 function getSessionFromRequest(req) {

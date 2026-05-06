@@ -38,7 +38,7 @@ module.exports = async function handler(req, res) {
       return;
     }
 
-    const session = attachSessionCookie(res, "admin");
+    const session = attachSessionCookie(req, res, "admin");
     sendJson(res, 200, {
       success: true,
       role: session.role,
@@ -59,7 +59,7 @@ module.exports = async function handler(req, res) {
       return;
     }
 
-    const session = attachSessionCookie(res, "super_admin");
+    const session = attachSessionCookie(req, res, "super_admin");
     sendJson(res, 200, {
       success: true,
       role: session.role,
@@ -94,7 +94,7 @@ module.exports = async function handler(req, res) {
       return;
     }
 
-    clearSessionCookie(res);
+    clearSessionCookie(req, res);
     sendJson(res, 200, { success: true });
     return;
   }
