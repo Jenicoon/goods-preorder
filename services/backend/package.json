@@ -4,7 +4,7 @@
   "private": true,
   "type": "commonjs",
   "engines": {
-    "node": ">=20"
+    "node": "20.x"
   },
   "dependencies": {
     "firebase-admin": "^13.0.0"
