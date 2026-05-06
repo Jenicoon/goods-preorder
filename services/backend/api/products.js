@@ -1,6 +1,6 @@
-const { getAllowedOrigins } = require("../../lib/config");
-const { handleCors, sendJson } = require("../../lib/http");
-const { getProducts } = require("../../lib/store");
+const { getAllowedOrigins } = require("../lib/config");
+const { handleCors, sendJson } = require("../lib/http");
+const { getProducts } = require("../lib/store");
 
 module.exports = async function handler(req, res) {
   if (handleCors(req, res, getAllowedOrigins())) {
