@@ -14,6 +14,8 @@
   const cancelPaymentModalButton = document.getElementById("cancelPaymentModalButton");
   const showAdminConfirmButton = document.getElementById("showAdminConfirmButton");
   const confirmPaymentButton = document.getElementById("confirmPaymentButton");
+  const copyAccountButton = document.getElementById("copyAccountButton");
+  const accountNumber = document.getElementById("accountNumber");
   const buyerCodeModal = document.getElementById("buyerCodeModal");
   const buyerCodeBox = document.getElementById("buyerCodeBox");
   const finishBuyerFlowButton = document.getElementById("finishBuyerFlowButton");
@@ -57,6 +59,45 @@
   function closeModal(modal) {
     modal.classList.add("is-hidden");
     modal.setAttribute("aria-hidden", "true");
+  }
+
+  function legacyCopyText(text) {
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.setAttribute("readonly", "");
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+
+    try {
+      return document.execCommand("copy");
+    } catch (error) {
+      return false;
+    } finally {
+      document.body.removeChild(textarea);
+    }
+  }
+
+  async function handleCopyAccount() {
+    const accountText = accountNumber ? accountNumber.textContent.trim() : "";
+    if (!accountText) {
+      alert("계좌번호를 찾지 못했습니다.");
+      return;
+    }
+
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(accountText);
+      } else if (!legacyCopyText(accountText)) {
+        throw new Error("Clipboard copy failed");
+      }
+
+      alert("계좌번호가 복사되었습니다.\n" + accountText);
+    } catch (error) {
+      alert("자동 복사가 차단되었어요. 아래 계좌번호를 직접 복사해 주세요.\n" + accountText);
+    }
   }
 
   function getSelectionKey(productId, size) {
@@ -387,6 +428,9 @@
   closePaymentModalButton.addEventListener("click", closePaymentFlow);
   cancelPaymentModalButton.addEventListener("click", handlePreviousStep);
   finishBuyerFlowButton.addEventListener("click", resetFlow);
+  copyAccountButton.addEventListener("click", function () {
+    void handleCopyAccount();
+  });
 
   (async function initializePage() {
     try {
