@@ -145,6 +145,8 @@
       statCard("전체 상품 수", summary.productCount + "개"),
       statCard("전체 주문 수", summary.totalOrders + "건"),
       statCard("총 판매 수익", formatCurrency(summary.totalRevenue)),
+      statCard("계좌이체 수익", formatCurrency(summary.revenueByPaymentMethod.bank_transfer)),
+      statCard("현금 수익", formatCurrency(summary.revenueByPaymentMethod.cash)),
       statCard("총 판매 수량", summary.totalQuantity + "개"),
       statCard("품절 상품 수", summary.soldOutCount + "개"),
       statCard("확정 대기 주문", summary.waitingOrders + "건"),

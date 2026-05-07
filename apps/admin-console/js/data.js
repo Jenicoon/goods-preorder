@@ -245,6 +245,10 @@
     const pendingOrders = getPendingOrders();
     const products = getProducts();
     const revenueByProduct = {};
+    const revenueByPaymentMethod = {
+      bank_transfer: 0,
+      cash: 0
+    };
     const quantityByProduct = {};
     let totalRevenue = 0;
     let totalQuantity = 0;
@@ -252,8 +256,12 @@
     let completedCount = 0;
 
     orders.forEach(function (order) {
-      totalRevenue += Number(order.totalPrice || 0);
+      const orderTotalPrice = Number(order.totalPrice || 0);
+      const paymentMethod = order.paymentMethod === "cash" ? "cash" : "bank_transfer";
+
+      totalRevenue += orderTotalPrice;
       totalQuantity += Number(order.totalQuantity || 0);
+      revenueByPaymentMethod[paymentMethod] += orderTotalPrice;
 
       (order.items || []).forEach(function (item) {
         revenueByProduct[item.productName] = (revenueByProduct[item.productName] || 0) + Number(item.totalPrice || 0);
@@ -274,6 +282,7 @@
       completedOrders: completedCount,
       totalRevenue: totalRevenue,
       totalQuantity: totalQuantity,
+      revenueByPaymentMethod: revenueByPaymentMethod,
       revenueByProduct: revenueByProduct,
       quantityByProduct: quantityByProduct,
       soldOutCount: products.filter(isProductActuallySoldOut).length,
