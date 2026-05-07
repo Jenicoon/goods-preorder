@@ -222,6 +222,8 @@ main {
   flex-direction: column;
   gap: 12px;
   padding: 16px;
+  align-items: center;
+  text-align: center;
 }
 
 .page-section {
@@ -891,14 +893,30 @@ textarea:focus {
   color: var(--primary-dark);
 }
 
-.payment-qr-image {
-  width: min(100%, 220px);
-  aspect-ratio: 1 / 1;
-  object-fit: contain;
-  padding: 10px;
-  border-radius: 20px;
-  background: #ffffff;
-  box-shadow: 0 12px 30px rgba(37, 99, 235, 0.14);
+.account-guide {
+  margin: 0;
+  color: var(--muted);
+}
+
+.payment-method-box {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  border-radius: var(--radius-md);
+  background: #f9fcff;
+  border: 1px solid rgba(37, 99, 235, 0.16);
+}
+
+.payment-method-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+}
+
+.payment-method-option input {
+  width: auto;
+  margin: 0;
 }
 
 .modal-actions {

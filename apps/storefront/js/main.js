@@ -14,11 +14,7 @@
   const cancelPaymentModalButton = document.getElementById("cancelPaymentModalButton");
   const showAdminConfirmButton = document.getElementById("showAdminConfirmButton");
   const confirmPaymentButton = document.getElementById("confirmPaymentButton");
-  const copyAccountButton = document.getElementById("copyAccountButton");
-  const accountNumber = document.getElementById("accountNumber");
-  const accountQrImage = document.getElementById("accountQrImage");
-  const qrFallbackTitle = document.getElementById("qrFallbackTitle");
-  const qrFallbackDescription = document.getElementById("qrFallbackDescription");
+  const paymentMethodInputs = Array.from(document.querySelectorAll('input[name="paymentMethod"]'));
   const buyerCodeModal = document.getElementById("buyerCodeModal");
   const buyerCodeBox = document.getElementById("buyerCodeBox");
   const finishBuyerFlowButton = document.getElementById("finishBuyerFlowButton");
@@ -64,74 +60,12 @@
     modal.setAttribute("aria-hidden", "true");
   }
 
-  function legacyCopyText(text) {
-    const textarea = document.createElement("textarea");
-    textarea.value = text;
-    textarea.setAttribute("readonly", "");
-    textarea.style.position = "fixed";
-    textarea.style.opacity = "0";
-    document.body.appendChild(textarea);
-    textarea.focus();
-    textarea.select();
+  function getSelectedPaymentMethod() {
+    const selectedInput = paymentMethodInputs.find(function (input) {
+      return input.checked;
+    });
 
-    try {
-      return document.execCommand("copy");
-    } catch (error) {
-      return false;
-    } finally {
-      document.body.removeChild(textarea);
-    }
-  }
-
-  async function handleCopyAccount() {
-    const accountText = accountNumber ? accountNumber.textContent.trim() : "";
-    if (!accountText) {
-      alert("계좌번호를 찾지 못했습니다.");
-      return;
-    }
-
-    try {
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(accountText);
-      } else if (!legacyCopyText(accountText)) {
-        throw new Error("Clipboard copy failed");
-      }
-
-      alert("계좌번호가 복사되었습니다.\n" + accountText);
-    } catch (error) {
-      alert("자동 복사가 차단되었어요. 아래 계좌번호를 직접 복사해 주세요.\n" + accountText);
-    }
-  }
-
-  function renderAccountQr() {
-    const accountText = accountNumber ? accountNumber.textContent.trim() : "";
-    if (!accountText || !accountQrImage) {
-      return;
-    }
-
-    const qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=240x240&format=png&data=" + encodeURIComponent(accountText);
-
-    accountQrImage.addEventListener("load", function () {
-      accountQrImage.classList.remove("is-hidden");
-      if (qrFallbackTitle) {
-        qrFallbackTitle.textContent = "QR 스캔으로 계좌 확인";
-      }
-      if (qrFallbackDescription) {
-        qrFallbackDescription.textContent = "앱에서 인식이 안 되면 아래 계좌번호를 직접 복사해 주세요.";
-      }
-    }, { once: true });
-
-    accountQrImage.addEventListener("error", function () {
-      accountQrImage.classList.add("is-hidden");
-      if (qrFallbackTitle) {
-        qrFallbackTitle.textContent = "QR 이미지를 불러오지 못했습니다";
-      }
-      if (qrFallbackDescription) {
-        qrFallbackDescription.textContent = "아래 계좌번호를 직접 복사해서 입금해 주세요.";
-      }
-    }, { once: true });
-
-    accountQrImage.src = qrUrl;
+    return selectedInput ? selectedInput.value : "";
   }
 
   function getSelectionKey(productId, size) {
@@ -342,6 +276,9 @@
     stagedItems = selectedItems;
     paymentSummary.innerHTML = renderSummaryContent(selectedItems);
     adminCodeInput.value = "";
+    if (paymentMethodInputs.length) {
+      paymentMethodInputs[0].checked = true;
+    }
     setAdminConfirmStepVisible(false);
     openModal(paymentModal);
   }
@@ -354,7 +291,14 @@
 
     try {
       if (!pendingOrderId) {
+        const paymentMethod = getSelectedPaymentMethod();
+        if (!paymentMethod) {
+          alert("결제 방식을 선택해 주세요.");
+          return;
+        }
+
         const pendingOrder = await GoodsData.createPendingOrder({
+          paymentMethod: paymentMethod,
           items: stagedItems.map(function (item) {
             return {
               productId: item.productId,
@@ -462,9 +406,6 @@
   closePaymentModalButton.addEventListener("click", closePaymentFlow);
   cancelPaymentModalButton.addEventListener("click", handlePreviousStep);
   finishBuyerFlowButton.addEventListener("click", resetFlow);
-  copyAccountButton.addEventListener("click", function () {
-    void handleCopyAccount();
-  });
 
   (async function initializePage() {
     try {
@@ -477,6 +418,5 @@
     }
 
     initializeShopAccess();
-    renderAccountQr();
   })();
 })();

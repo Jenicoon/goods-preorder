@@ -20,6 +20,14 @@ function generateRandomCode() {
   return String(Math.floor(100000 + Math.random() * 900000));
 }
 
+function normalizePaymentMethod(value) {
+  if (value === "cash") {
+    return "cash";
+  }
+
+  return "bank_transfer";
+}
+
 function isProductActuallySoldOut(product) {
   if (product.soldOut) {
     return true;
@@ -181,6 +189,7 @@ async function getDashboardData() {
 
 async function createPendingOrder(orderInput) {
   const items = Array.isArray(orderInput.items) ? orderInput.items : [];
+  const paymentMethod = normalizePaymentMethod(orderInput.paymentMethod);
 
   if (!items.length) {
     throw new Error("주문할 상품이 없습니다.");
@@ -252,6 +261,7 @@ async function createPendingOrder(orderInput) {
     const nextPendingOrder = {
       id: orderId,
       items: normalizedItems,
+      paymentMethod: paymentMethod,
       totalQuantity: normalizedItems.reduce(function (sum, item) {
         return sum + item.quantity;
       }, 0),
@@ -294,6 +304,7 @@ async function confirmPendingOrder(orderId, adminCode) {
     const order = {
       id: pendingOrder.id,
       items: clone(pendingOrder.items),
+      paymentMethod: normalizePaymentMethod(pendingOrder.paymentMethod),
       totalQuantity: pendingOrder.totalQuantity,
       totalPrice: pendingOrder.totalPrice,
       status: "처리 대기",

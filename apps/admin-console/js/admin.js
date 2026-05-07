@@ -105,6 +105,10 @@
     }).join("<br>");
   }
 
+  function paymentMethodLabel(paymentMethod) {
+    return paymentMethod === "cash" ? "현금" : "계좌이체";
+  }
+
   function renderStats() {
     const revenue = GoodsData.calculateRevenue();
     adminStats.innerHTML = [
@@ -125,6 +129,7 @@
         "<td>" + new Date(order.createdAt).toLocaleString("ko-KR") + "</td>",
         "<td>" + order.buyerConfirmationCode + "</td>",
         "<td>" + order.randomCode + "</td>",
+        "<td>" + paymentMethodLabel(order.paymentMethod) + "</td>",
         "<td>" + orderItemsHtml(order.items) + "</td>",
         "<td>" + order.totalQuantity + "개</td>",
         "<td>" + formatCurrency(order.totalPrice) + "</td>",
@@ -146,6 +151,7 @@
         '<tr class="order-row' + (isCompleted ? " completed" : "") + '">',
         "<td>" + new Date(order.createdAt).toLocaleString("ko-KR") + "</td>",
         "<td>" + order.buyerConfirmationCode + "</td>",
+        "<td>" + paymentMethodLabel(order.paymentMethod) + "</td>",
         "<td>" + orderItemsHtml(order.items) + "</td>",
         "<td>" + order.totalQuantity + "개</td>",
         "<td>" + formatCurrency(order.totalPrice) + "</td>",
