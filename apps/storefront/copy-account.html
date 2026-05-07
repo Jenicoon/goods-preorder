@@ -4,18 +4,177 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>계좌 복사</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: "Segoe UI", "Malgun Gothic", sans-serif;
+      background: #f6f4ef;
+      color: #1f1a17;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background:
+        radial-gradient(circle at top, rgba(199, 164, 110, 0.18), transparent 35%),
+        linear-gradient(180deg, #f9f6f0 0%, #f0ebe1 100%);
+    }
+
+    .card {
+      width: min(100%, 460px);
+      padding: 28px;
+      border-radius: 24px;
+      background: rgba(255, 255, 255, 0.92);
+      box-shadow: 0 24px 50px rgba(77, 56, 31, 0.14);
+      text-align: center;
+    }
+
+    .eyebrow {
+      margin: 0 0 10px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      color: #9a6b2f;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: 28px;
+    }
+
+    p {
+      margin: 0;
+      line-height: 1.6;
+    }
+
+    .account {
+      margin: 20px 0 16px;
+      padding: 16px;
+      border-radius: 16px;
+      background: #f6efe5;
+      font-size: 22px;
+      font-weight: 700;
+      word-break: keep-all;
+    }
+
+    .status {
+      margin-top: 12px;
+      min-height: 48px;
+      color: #5b4935;
+    }
+
+    .actions {
+      display: grid;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    button,
+    a {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 48px;
+      padding: 0 18px;
+      border-radius: 999px;
+      border: none;
+      text-decoration: none;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .primary {
+      background: #1f1a17;
+      color: #fff;
+    }
+
+    .secondary {
+      background: #eadbc6;
+      color: #3b2d1f;
+    }
+  </style>
 </head>
 <body>
+  <main class="card">
+    <p class="eyebrow">COPY ACCOUNT</p>
+    <h1>계좌번호 복사</h1>
+    <p>브라우저 정책 때문에 자동 복사가 막히는 경우가 있어요. 페이지 진입 시 자동으로 한 번 시도하고, 실패하면 아래 버튼으로 다시 복사할 수 있습니다.</p>
+    <div id="accountNumber" class="account">신한은행 100-031-980976</div>
+    <p id="statusMessage" class="status">자동 복사를 시도하고 있습니다...</p>
+    <div class="actions">
+      <button id="copyButton" class="primary" type="button">계좌번호 복사하기</button>
+      <a class="secondary" href="index.html">스토어로 돌아가기</a>
+    </div>
+  </main>
+
   <script>
-    (async function () {
-      const account = "신한은행 100-031-980976";
-      try {
-        await navigator.clipboard.writeText(account);
-        alert("계좌가 복사되었습니다.\n" + account);
-      } catch (error) {
-        prompt("자동 복사에 실패했어요. 아래 계좌를 복사해주세요.", account);
+    (function () {
+      var account = "신한은행 100-031-980976";
+      var statusMessage = document.getElementById("statusMessage");
+      var copyButton = document.getElementById("copyButton");
+
+      function setStatus(message) {
+        statusMessage.textContent = message;
       }
-      window.location.href = "index.html";
+
+      function legacyCopy(text) {
+        var textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.setAttribute("readonly", "");
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+
+        try {
+          return document.execCommand("copy");
+        } catch (error) {
+          return false;
+        } finally {
+          document.body.removeChild(textarea);
+        }
+      }
+
+      async function copyAccount() {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(account);
+          return true;
+        }
+
+        return legacyCopy(account);
+      }
+
+      async function tryCopy(isAutomatic) {
+        try {
+          var copied = await copyAccount();
+          if (!copied) {
+            throw new Error("Copy command was blocked.");
+          }
+
+          setStatus(isAutomatic
+            ? "자동 복사에 성공했습니다. 붙여넣기해서 사용해 주세요."
+            : "복사되었습니다. 필요한 곳에 붙여넣기해 주세요.");
+        } catch (error) {
+          setStatus("자동 복사가 차단되었습니다. 아래 버튼을 눌러 다시 복사해 주세요.");
+          if (!isAutomatic) {
+            window.prompt("복사가 되지 않으면 아래 계좌번호를 직접 복사해 주세요.", account);
+          }
+        }
+      }
+
+      copyButton.addEventListener("click", function () {
+        void tryCopy(false);
+      });
+
+      void tryCopy(true);
     })();
   </script>
 </body>
