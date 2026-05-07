@@ -891,6 +891,16 @@ textarea:focus {
   color: var(--primary-dark);
 }
 
+.payment-qr-image {
+  width: min(100%, 220px);
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
+  padding: 10px;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 12px 30px rgba(37, 99, 235, 0.14);
+}
+
 .modal-actions {
   display: flex;
   justify-content: flex-end;

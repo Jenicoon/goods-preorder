@@ -16,6 +16,9 @@
   const confirmPaymentButton = document.getElementById("confirmPaymentButton");
   const copyAccountButton = document.getElementById("copyAccountButton");
   const accountNumber = document.getElementById("accountNumber");
+  const accountQrImage = document.getElementById("accountQrImage");
+  const qrFallbackTitle = document.getElementById("qrFallbackTitle");
+  const qrFallbackDescription = document.getElementById("qrFallbackDescription");
   const buyerCodeModal = document.getElementById("buyerCodeModal");
   const buyerCodeBox = document.getElementById("buyerCodeBox");
   const finishBuyerFlowButton = document.getElementById("finishBuyerFlowButton");
@@ -98,6 +101,37 @@
     } catch (error) {
       alert("자동 복사가 차단되었어요. 아래 계좌번호를 직접 복사해 주세요.\n" + accountText);
     }
+  }
+
+  function renderAccountQr() {
+    const accountText = accountNumber ? accountNumber.textContent.trim() : "";
+    if (!accountText || !accountQrImage) {
+      return;
+    }
+
+    const qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=240x240&format=png&data=" + encodeURIComponent(accountText);
+
+    accountQrImage.addEventListener("load", function () {
+      accountQrImage.classList.remove("is-hidden");
+      if (qrFallbackTitle) {
+        qrFallbackTitle.textContent = "QR 스캔으로 계좌 확인";
+      }
+      if (qrFallbackDescription) {
+        qrFallbackDescription.textContent = "앱에서 인식이 안 되면 아래 계좌번호를 직접 복사해 주세요.";
+      }
+    }, { once: true });
+
+    accountQrImage.addEventListener("error", function () {
+      accountQrImage.classList.add("is-hidden");
+      if (qrFallbackTitle) {
+        qrFallbackTitle.textContent = "QR 이미지를 불러오지 못했습니다";
+      }
+      if (qrFallbackDescription) {
+        qrFallbackDescription.textContent = "아래 계좌번호를 직접 복사해서 입금해 주세요.";
+      }
+    }, { once: true });
+
+    accountQrImage.src = qrUrl;
   }
 
   function getSelectionKey(productId, size) {
@@ -443,5 +477,6 @@
     }
 
     initializeShopAccess();
+    renderAccountQr();
   })();
 })();
